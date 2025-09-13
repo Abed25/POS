@@ -5,6 +5,7 @@ import {
   getSingleProduct,
   addProduct,
   editProduct,
+  patchProduct,
   removeProduct,
 } from "../controllers/productController.mjs";
 
@@ -25,6 +26,10 @@ router.post("/", addProduct);
 // @route   PUT /api/products/:id
 // @desc    Update product
 router.put("/:id", editProduct);
+
+// @route   PATCH /api/products/:id
+// @desc    partially update product
+router.patch("/:id", patchProduct);
 
 // @route   DELETE /api/products/:id
 // @desc    Delete product

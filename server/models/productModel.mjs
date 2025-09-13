@@ -35,6 +35,25 @@ export const updateProduct = async (id, product) => {
   return { id, ...product };
 };
 
+// PATCH product (dynamic update)
+export const patchProduct = async (id, fields) => {
+  if (Object.keys(fields).length === 0) {
+    throw new Error("No fields provided for update");
+  }
+
+  const updates = Object.keys(fields)
+    .map((key) => `${key} = ?`)
+    .join(", ");
+  const values = Object.values(fields);
+
+  const [result] = await db.query(
+    `UPDATE products SET ${updates} WHERE id = ?`,
+    [...values, id]
+  );
+
+  return result;
+};
+
 // Delete a product
 export const deleteProduct = async (id) => {
   await db.query("DELETE FROM products WHERE id = ?", [id]);

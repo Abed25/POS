@@ -6,6 +6,7 @@ import {
   updateProduct,
   deleteProduct,
 } from "../models/productModel.mjs";
+import { patchProduct as patchProductModel } from "../models/productModel.mjs";
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -80,6 +81,26 @@ export const editProduct = async (req, res) => {
     });
 
     res.status(200).json(updatedProduct);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Failed to update product", error: error.message });
+  }
+};
+
+// Patch product(Partial update)
+export const patchProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const fields = req.body;
+
+    const result = await patchProductModel(id, fields);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.json({ message: "Product updated successfully" });
   } catch (error) {
     res
       .status(500)
