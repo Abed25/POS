@@ -40,3 +40,28 @@ export const deleteProduct = async (id) => {
   await db.query("DELETE FROM products WHERE id = ?", [id]);
   return { message: "Product deleted successfully" };
 };
+
+// Update stock quantity safely
+export const updateProductStock = async (product_id, quantity) => {
+  // 1. Get current stock
+  const [rows] = await db.query("SELECT stock FROM products WHERE id = ?", [
+    product_id,
+  ]);
+
+  if (rows.length === 0) {
+    throw new Error("Product not found");
+  }
+
+  const currentStock = rows[0].stock;
+
+  // 2. Check availability
+  if (quantity > currentStock) {
+    throw new Error("Not enough stock available for this sale");
+  }
+
+  // 3. Update stock
+  await db.query("UPDATE products SET stock = stock - ? WHERE id = ?", [
+    quantity,
+    product_id,
+  ]);
+};
