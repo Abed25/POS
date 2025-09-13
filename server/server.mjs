@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import productRoutes from "./routes/productRoutes.mjs";
+import salesRoutes from "./routes/salesRoutes.mjs";
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 5000;
 // Routes
 app.use("/api/products", productRoutes);
+app.use("/api/sales", salesRoutes);
 
 app.get("/", (req, res) => {
   res.send("This  is my backend server");
