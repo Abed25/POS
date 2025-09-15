@@ -9,30 +9,18 @@ import {
   removeProduct,
 } from "../controllers/productController.mjs";
 
+import { protect, isAdmin } from "../middleware/authMiddleware.mjs";
+
 const router = express.Router();
 
-// @route   GET /api/products
-// @desc    Get all products
+// Public: view products
 router.get("/", getAllProducts);
-
-// @route   GET /api/products/:id
-// @desc    Get single product
 router.get("/:id", getSingleProduct);
 
-// @route   POST /api/products
-// @desc    Add new product
-router.post("/", addProduct);
-
-// @route   PUT /api/products/:id
-// @desc    Update product
-router.put("/:id", editProduct);
-
-// @route   PATCH /api/products/:id
-// @desc    partially update product
-router.patch("/:id", patchProduct);
-
-// @route   DELETE /api/products/:id
-// @desc    Delete product
-router.delete("/:id", removeProduct);
+// Admin only: manage products
+router.post("/", protect, isAdmin, addProduct);
+router.put("/:id", protect, isAdmin, editProduct);
+router.patch("/:id", protect, isAdmin, patchProduct);
+router.delete("/:id", protect, isAdmin, removeProduct);
 
 export default router;
