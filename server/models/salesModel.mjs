@@ -17,3 +17,12 @@ export const getSaleById = async (id) => {
   const [rows] = await db.query("SELECT * FROM sales WHERE id = ?", [id]);
   return rows[0];
 };
+
+// Get sales by date range
+export const getSalesByDateRange = async (from, to) => {
+  const [rows] = await db.query(
+    "SELECT * FROM sales WHERE sale_date BETWEEN ? AND ? ORDER BY sale_date ASC",
+    [from, to]
+  );
+  return rows;
+};

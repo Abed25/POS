@@ -1,6 +1,10 @@
-import { createSale, getSales, getSaleById } from "../models/salesModel.mjs";
-import { updateProductStock } from "../models/productModel.mjs";
-import { getProductById } from "../models/productModel.mjs";
+import {
+  createSale,
+  getSales,
+  getSaleById,
+  getSalesByDateRange,
+} from "../models/salesModel.mjs";
+import { updateProductStock, getProductById } from "../models/productModel.mjs";
 
 export const addSale = async (req, res) => {
   try {
@@ -60,5 +64,25 @@ export const getSingleSale = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to fetch sale", error: error.message });
+  }
+};
+
+export const getSalesInRange = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    if (!from || !to) {
+      return res
+        .status(400)
+        .json({ message: "Please provide from and to dates" });
+    }
+
+    const sales = await getSalesByDateRange(from, to);
+
+    res.json(sales);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Failed to fetch sales", error: error.message });
   }
 };
