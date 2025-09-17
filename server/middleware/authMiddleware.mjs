@@ -1,8 +1,7 @@
-// middleware/authMiddleware.mjs
 import jwt from "jsonwebtoken";
-
+// Authenticate user
 export const protect = (req, res, next) => {
-  let token = req.headers.authorization?.split(" ")[1];
+  const token = req.headers.authorization?.split(" ")[1];
 
   if (!token) {
     return res.status(401).json({ message: "Not authorized, no token" });
@@ -13,21 +12,16 @@ export const protect = (req, res, next) => {
     req.user = decoded; // { id, role }
     next();
   } catch (error) {
-    res.status(401).json({ message: "Token failed" });
+    return res.status(401).json({ message: "Token failed" });
   }
 };
 
-// Role-based middleware
-export const isAdmin = (req, res, next) => {
-  if (req.user?.role === "admin") {
-    return next();
-  }
-  return res.status(403).json({ message: "Admin access only" });
-};
-
-export const isCashier = (req, res, next) => {
-  if (req.user?.role === "cashier") {
-    return next();
-  }
-  return res.status(403).json({ message: "Cashier access only" });
+// Authorize specific roles
+export const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!roles.includes(req.user?.role)) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    next();
+  };
 };
