@@ -1,4 +1,7 @@
-import { fetchSalesBetweenDates } from "../models/ReportModel.mjs";
+import {
+  fetchSalesBetweenDates,
+  fetchStockReport,
+} from "../models/ReportModel.mjs";
 
 export const getSalesReport = async (req, res) => {
   try {
@@ -46,5 +49,28 @@ export const getSalesReport = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error fetching sales report" });
+  }
+};
+
+// Stock report
+export const getStockReport = async (req, res) => {
+  try {
+    const rows = await fetchStockReport();
+
+    // Add low-stock alerts
+    const lowStockThreshold = 10;
+    const lowStockItems = rows.filter((p) => p.stock < lowStockThreshold);
+
+    res.json({
+      summary: {
+        totalProducts: rows.length,
+        lowStockCount: lowStockItems.length,
+      },
+      lowStockItems,
+      details: rows,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error fetching stock report" });
   }
 };

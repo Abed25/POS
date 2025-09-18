@@ -19,3 +19,13 @@ export const fetchSalesBetweenDates = async (start, end, user) => {
   const [rows] = await db.query(query, params);
   return rows;
 };
+
+// Fetch current stock levels
+export const fetchStockReport = async () => {
+  const [rows] = await db.query(`
+    SELECT id, name, stock, category, price
+    FROM products
+    ORDER BY stock ASC
+  `);
+  return rows;
+};
