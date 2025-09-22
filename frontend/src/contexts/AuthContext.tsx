@@ -1,25 +1,22 @@
 import React, { createContext, useContext, useEffect, useReducer } from "react";
-import { User, AuthState } from "../types";
-import { authApi } from "../lib/api";
+import type { User, AuthState } from "../types";
+import axios from "axios";
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+  logout: () => void;
   loading: boolean;
 }
-
-const AuthContext = createContext<AuthContextType | null>(null);
 
 type AuthAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "LOGIN_SUCCESS"; payload: { user: User; token: string } }
-  | { type: "LOGOUT" }
-  | { type: "SET_USER"; payload: User };
+  | { type: "LOGOUT" };
 
 const authReducer = (
   state: AuthState & { loading: boolean },
   action: AuthAction
-) => {
+): AuthState & { loading: boolean } => {
   switch (action.type) {
     case "SET_LOADING":
       return { ...state, loading: action.payload };
@@ -43,91 +40,74 @@ const authReducer = (
         isAuthenticated: false,
         loading: false,
       };
-    case "SET_USER":
-      return {
-        ...state,
-        user: action.payload,
-        isAuthenticated: true,
-        loading: false,
-      };
     default:
       return state;
   }
 };
+
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [state, dispatch] = useReducer(authReducer, {
     user: null,
-    isAuthenticated: false,
     token: null,
+    isAuthenticated: false,
     loading: true,
   });
 
+  // Restore session on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      const token = localStorage.getItem("auth_token");
-      const userData = localStorage.getItem("user");
-
-      if (token && userData) {
-        try {
-          const user = JSON.parse(userData);
-          // Verify token is still valid
-          await authApi.getCurrentUser();
-          dispatch({ type: "LOGIN_SUCCESS", payload: { user, token } });
-        } catch (error) {
-          dispatch({ type: "LOGOUT" });
-        }
-      } else {
-        dispatch({ type: "SET_LOADING", payload: false });
+    const storedToken = localStorage.getItem("auth_token");
+    const storedUser = localStorage.getItem("user");
+    if (storedToken && storedUser) {
+      try {
+        const user: User = JSON.parse(storedUser);
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          payload: { user, token: storedToken },
+        });
+      } catch {
+        dispatch({ type: "LOGOUT" });
       }
-    };
-
-    initializeAuth();
+    } else {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
   }, []);
 
+  // ✅ Corrected login function
   const login = async (username: string, password: string): Promise<void> => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      // For demo purposes, simulate login with mock credentials
-      if (
-        (username === "admin" && password === "admin123") ||
-        (username === "cashier" && password === "cashier123")
-      ) {
-        const mockUser = {
-          id: username === "admin" ? "1" : "2",
-          username: username,
-          email: `${username}@demo.com`,
-          role:
-            username === "admin" ? ("Admin" as const) : ("Cashier" as const),
-          createdAt: new Date().toISOString(),
-        };
-        const mockToken = "demo-jwt-token-" + Date.now();
+      const { data } = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        { username, password },
+        { headers: { "Content-Type": "application/json" } }
+      );
 
-        dispatch({
-          type: "LOGIN_SUCCESS",
-          payload: { user: mockUser, token: mockToken },
-        });
-      } else {
-        // Try actual API call for production
-        const response = await authApi.login(username, password);
-        dispatch({ type: "LOGIN_SUCCESS", payload: response as any });
-      }
-    } catch (error) {
+      // Build a minimal User object to satisfy the context
+      const user: User = {
+        id: 0, // backend doesn't send an id, placeholder is fine
+        username,
+        email: "",
+        role: data.role as "admin" | "cashier",
+        createdAt: new Date().toISOString(),
+      };
+
+      dispatch({
+        type: "LOGIN_SUCCESS",
+        payload: { user, token: data.token },
+      });
+    } catch (err: any) {
+      console.error("❌ Login failed:", err.response?.data || err.message);
       dispatch({ type: "SET_LOADING", payload: false });
-      throw error;
+      throw err;
     }
   };
 
-  const logout = async (): Promise<void> => {
-    try {
-      await authApi.logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    } finally {
-      dispatch({ type: "LOGOUT" });
-    }
+  const logout = (): void => {
+    dispatch({ type: "LOGOUT" });
   };
 
   return (
@@ -138,9 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider");
+  return ctx;
 };
