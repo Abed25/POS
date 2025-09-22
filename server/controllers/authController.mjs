@@ -41,3 +41,20 @@ export async function login(req, res) {
     res.status(500).json({ message: error.message });
   }
 }
+
+// Get logged-in user details
+export const getCurrentUser = async (req, res) => {
+  try {
+    // req.user is set by protect middleware
+    const { id, username, email, role, created_at } = req.user;
+    res.json({
+      id,
+      username,
+      email,
+      role,
+      created_at,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user details" });
+  }
+};
