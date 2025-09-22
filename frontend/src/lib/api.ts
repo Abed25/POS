@@ -1,7 +1,6 @@
-import { StockItem, Sale } from "../types";
-
+// ✅ Adjust BASE URL to your backend
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -10,15 +9,13 @@ class ApiError extends Error {
   }
 }
 
-const getAuthToken = (): string | null => {
-  return localStorage.getItem("auth_token");
-};
+const getToken = (): string | null => localStorage.getItem("auth_token");
 
-const apiRequest = async <T>(
+async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
-): Promise<T> => {
-  const token = getAuthToken();
+): Promise<T> {
+  const token = getToken();
   const url = `${API_BASE_URL}${endpoint}`;
 
   const config: RequestInit = {
@@ -30,129 +27,74 @@ const apiRequest = async <T>(
     },
   };
 
-  try {
-    const response = await fetch(url, config);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new ApiError(
-        response.status,
-        errorData.message || `HTTP ${response.status}: ${response.statusText}`
-      );
-    }
-
-    return await response.json();
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new Error("Network error occurred");
+  const res = await fetch(url, config);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, err.message || res.statusText);
   }
-};
+  return res.json();
+}
 
+/* ---------- AUTH ---------- */
 export const authApi = {
-  login: async (username: string, password: string) => {
-    return apiRequest("/auth/login", {
+  login: (username: string, password: string) =>
+    apiRequest<{ user: any; token: string }>("/auth/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
-    });
-  },
+    }),
 
-  logout: async () => {
-    return apiRequest("/auth/logout", { method: "POST" });
-  },
+  register: (data: { username: string; password: string; role: string }) =>
+    apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 
-  getCurrentUser: async () => {
-    return apiRequest("/auth/me");
-  },
+  getCurrentUser: () => apiRequest("/auth/me"),
 };
 
+/* ---------- PRODUCTS ---------- */
+export const productApi = {
+  getAll: () => apiRequest("/products"),
+  getById: (id: number) => apiRequest(`/products/${id}`),
+  add: (data: any) =>
+    apiRequest("/products", { method: "POST", body: JSON.stringify(data) }),
+  update: (id: number, data: any) =>
+    apiRequest(`/products/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+  patch: (id: number, data: any) =>
+    apiRequest(`/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+  remove: (id: number) => apiRequest(`/products/${id}`, { method: "DELETE" }),
+};
+
+/* ---------- SALES ---------- */
 export const salesApi = {
-  getSales: async (from?: string, to?: string, page = 1, limit = 20) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(from && { from }),
-      ...(to && { to }),
-    });
-    return apiRequest(`/sales?${params}`);
+  list: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+    return apiRequest(`/sales?${params.toString()}`);
   },
-
-  createSale: async (saleData: Partial<Sale>) => {
-    return apiRequest("/sales", {
-      method: "POST",
-      body: JSON.stringify(saleData),
-    });
-  },
-
-  updateSale: async (id: string, saleData: Partial<Sale>) => {
-    return apiRequest(`/sales/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(saleData),
-    });
-  },
-
-  deleteSale: async (id: string) => {
-    return apiRequest(`/sales/${id}`, { method: "DELETE" });
-  },
-
-  getDashboardMetrics: async () => {
-    return apiRequest("/sales/dashboard-metrics");
-  },
-
-  getRevenueChart: async (period: "7d" | "30d" | "90d" = "30d") => {
-    return apiRequest(`/sales/chart?period=${period}`);
-  },
+  create: (data: any) =>
+    apiRequest("/sales", { method: "POST", body: JSON.stringify(data) }),
+  getById: (id: number) => apiRequest(`/sales/${id}`),
 };
 
+/* ---------- REPORTS ---------- */
+export const reportApi = {
+  salesSummary: (from: string, to: string) => {
+    const params = new URLSearchParams({ from, to });
+    return apiRequest(`/reports/sales?${params.toString()}`);
+  },
+  stockSummary: () => apiRequest("/reports/stock"),
+};
+
+/* ---------- STOCK ---------- */
 export const stockApi = {
-  getStockReport: async () => {
-    return apiRequest("/stock/report");
-  },
-
-  getStockItems: async (page = 1, limit = 20, category?: string) => {
-    const params = new URLSearchParams({
-      page: page.toString(),
-      limit: limit.toString(),
-      ...(category && { category }),
-    });
-    return apiRequest(`/stock?${params}`);
-  },
-
-  updateStock: async (id: string, stockData: Partial<StockItem>) => {
-    return apiRequest(`/stock/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(stockData),
-    });
-  },
-
-  addStock: async (stockData: Partial<StockItem>) => {
-    return apiRequest("/stock", {
-      method: "POST",
-      body: JSON.stringify(stockData),
-    });
-  },
-
-  deleteStock: async (id: string) => {
-    return apiRequest(`/stock/${id}`, { method: "DELETE" });
-  },
-
-  getLowStockAlerts: async () => {
-    return apiRequest("/stock/alerts");
-  },
-};
-
-export const reportsApi = {
-  generateSalesReport: async (
-    from: string,
-    to: string,
-    format: "pdf" | "csv" = "pdf"
-  ) => {
-    const params = new URLSearchParams({ from, to, format });
-    return apiRequest(`/reports/sales?${params}`);
-  },
-
-  generateStockReport: async (format: "pdf" | "csv" = "pdf") => {
-    return apiRequest(`/reports/stock?format=${format}`);
-  },
+  lowStock: () => apiRequest("/stock/alerts"), // if implemented
+  stockReport: () => apiRequest("/stock/report"), // if implemented
 };
