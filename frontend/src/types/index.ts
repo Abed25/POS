@@ -11,13 +11,13 @@ export interface User {
 export interface Product {
   id: number;
   name: string;
-  category?: string;
-  supplier?: string;
-  unitPrice: number;
+  description?: string;
+  price: number; // maps to decimal(10,2)
   stock: number;
-  minStock?: number;
-  maxStock?: number;
-  createdAt: string;
+  category?: string;
+  sku?: string;
+  created_at: string; // timestamp -> string
+  updated_at: string; // timestamp -> string
 }
 
 /* ---------- SALES ---------- */
