@@ -1,98 +1,116 @@
 import React, { useState, useEffect } from "react";
 import { PlusIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { StockItem } from "../types";
-import { stockApi } from "../lib/api";
+import { productApi } from "../lib/api";
+
+/** DB-shaped product */
+export type Product = {
+  id: number;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category?: string | null;
+  sku?: string | null;
+  created_at: string;
+  updated_at: string;
+  // optional extra fields your API may provide
+  maxStockLevel?: number;
+  supplier?: string | null;
+};
+
+type FilterType = "all" | "low_stock" | "in_stock";
 
 export const Inventory: React.FC = () => {
-  const [inventory, setInventory] = useState<StockItem[]>([]);
+  const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState<FilterType>("all");
 
   useEffect(() => {
+    const fetchInventory = async () => {
+      setLoading(true);
+      try {
+        const raw = await productApi.getAll(); // could be unknown shape
+        // normalize into array
+        let arr: any[] = [];
+        if (Array.isArray(raw)) arr = raw;
+        else if (raw && Array.isArray((raw as any).data))
+          arr = (raw as any).data;
+        else if (raw && Array.isArray((raw as any).items))
+          arr = (raw as any).items;
+        else arr = [];
+
+        const products: Product[] = arr.map((d: any) => {
+          const id = Number(d.id ?? d.ID ?? d._id ?? 0);
+          const price = Number(d.price ?? d.unitPrice ?? d.unit_price ?? 0);
+          const stock = Number(
+            d.stock ?? d.currentStock ?? d.current_stock ?? 0
+          );
+          const maxStockLevelRaw =
+            d.maxStockLevel ?? d.max_stock ?? d.maxStock ?? undefined;
+
+          return {
+            id,
+            name: d.name ?? d.productName ?? "",
+            description: d.description ?? d.desc ?? undefined,
+            price: Number.isFinite(price) ? price : 0,
+            stock: Number.isFinite(stock) ? stock : 0,
+            category: d.category ?? d.cat ?? null,
+            sku: d.sku ?? d.SKU ?? null,
+            created_at: d.created_at ?? d.createdAt ?? "",
+            updated_at: d.updated_at ?? d.updatedAt ?? "",
+            maxStockLevel:
+              maxStockLevelRaw !== undefined
+                ? Number(maxStockLevelRaw)
+                : undefined,
+            supplier: d.supplier ?? null,
+          } as Product;
+        });
+
+        setInventory(products);
+      } catch (err) {
+        console.error("Failed to fetch inventory:", err);
+        setInventory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchInventory();
   }, []);
 
-  const fetchInventory = async () => {
-    try {
-      setLoading(true);
-      const response = await stockApi.getStockItems();
-
-      // Mock data - replace with actual API response
-      setInventory([
-        {
-          id: "1",
-          productName: "Wireless Headphones",
-          currentStock: 5,
-          minStockLevel: 10,
-          maxStockLevel: 50,
-          unitPrice: 99.99,
-          category: "Electronics",
-          supplier: "TechCorp",
-          lastRestocked: "2024-01-15",
-          status: "low_stock",
-        },
-        {
-          id: "2",
-          productName: "Coffee Beans Premium",
-          currentStock: 0,
-          minStockLevel: 20,
-          maxStockLevel: 100,
-          unitPrice: 24.99,
-          category: "Food & Beverage",
-          supplier: "CoffeeWorld",
-          lastRestocked: "2024-01-10",
-          status: "out_of_stock",
-        },
-        {
-          id: "3",
-          productName: "Smartphone Case",
-          currentStock: 25,
-          minStockLevel: 15,
-          maxStockLevel: 75,
-          unitPrice: 19.99,
-          category: "Electronics",
-          supplier: "TechCorp",
-          lastRestocked: "2024-01-20",
-          status: "in_stock",
-        },
-      ]);
-    } catch (error) {
-      console.error("Failed to fetch inventory:", error);
-    } finally {
-      setLoading(false);
-    }
+  // derive status (you can tweak threshold or use a minStock field if you have one)
+  const getStatus = (stock: number, min = 5) => {
+    if (stock === 0) return "out_of_stock";
+    if (stock <= min) return "low_stock";
+    return "in_stock";
   };
 
-  const getStatusBadge = (item: StockItem) => {
-    if (item.status === "out_of_stock") {
+  const getStatusBadge = (stock: number) => {
+    const s = getStatus(stock);
+    if (s === "out_of_stock")
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
           Out of Stock
         </span>
       );
-    } else if (item.status === "low_stock") {
+    if (s === "low_stock")
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
           Low Stock
         </span>
       );
-    } else {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-          In Stock
-        </span>
-      );
-    }
-  };
-
-  const getStockPercentage = (current: number, max: number) => {
-    return Math.min(100, Math.max(0, (current / max) * 100));
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+        In Stock
+      </span>
+    );
   };
 
   const filteredInventory = inventory.filter((item) => {
+    const status = getStatus(item.stock);
     if (filter === "low_stock")
-      return item.status === "low_stock" || item.status === "out_of_stock";
-    if (filter === "in_stock") return item.status === "in_stock";
+      return status === "low_stock" || status === "out_of_stock";
+    if (filter === "in_stock") return status === "in_stock";
     return true;
   });
 
@@ -121,11 +139,13 @@ export const Inventory: React.FC = () => {
       {/* Filter Tabs */}
       <div className="mb-6">
         <nav className="flex space-x-8">
-          {[
-            { key: "all", label: "All Items" },
-            { key: "low_stock", label: "Alerts" },
-            { key: "in_stock", label: "In Stock" },
-          ].map((tab) => (
+          {(
+            [
+              { key: "all", label: "All Items" },
+              { key: "low_stock", label: "Alerts" },
+              { key: "in_stock", label: "In Stock" },
+            ] as { key: FilterType; label: string }[]
+          ).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setFilter(tab.key)}
@@ -139,11 +159,10 @@ export const Inventory: React.FC = () => {
               {tab.key === "low_stock" && (
                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                   {
-                    inventory.filter(
-                      (item) =>
-                        item.status === "low_stock" ||
-                        item.status === "out_of_stock"
-                    ).length
+                    inventory.filter((p) => {
+                      const s = getStatus(p.stock);
+                      return s === "low_stock" || s === "out_of_stock";
+                    }).length
                   }
                 </span>
               )}
@@ -173,75 +192,81 @@ export const Inventory: React.FC = () => {
             <p className="text-gray-500">No inventory items found</p>
           </div>
         ) : (
-          filteredInventory.map((item) => (
-            <div
-              key={item.id}
-              className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {item.productName}
-                    </h3>
-                    <p className="text-sm text-gray-500">{item.category}</p>
-                  </div>
-                  {(item.status === "low_stock" ||
-                    item.status === "out_of_stock") && (
-                    <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />
-                  )}
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Current Stock</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      {item.currentStock} / {item.maxStockLevel}
-                    </span>
+          filteredInventory.map((item) => {
+            const status = getStatus(item.stock);
+            const max = item.maxStockLevel ?? Math.max(20, item.stock);
+            const pct = Math.min(
+              100,
+              Math.round((item.stock / Math.max(1, max)) * 100)
+            );
+            return (
+              <div
+                key={item.id}
+                className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {item.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">{item.category}</p>
+                    </div>
+                    {(status === "low_stock" || status === "out_of_stock") && (
+                      <ExclamationTriangleIcon className="h-6 w-6 text-yellow-500" />
+                    )}
                   </div>
 
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full ${
-                        item.status === "out_of_stock"
-                          ? "bg-red-500"
-                          : item.status === "low_stock"
-                          ? "bg-yellow-500"
-                          : "bg-green-500"
-                      }`}
-                      style={{
-                        width: `${getStockPercentage(
-                          item.currentStock,
-                          item.maxStockLevel
-                        )}%`,
-                      }}
-                    ></div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Stock</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {item.stock}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full ${
+                          status === "out_of_stock"
+                            ? "bg-red-500"
+                            : status === "low_stock"
+                            ? "bg-yellow-500"
+                            : "bg-green-500"
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Unit Price</span>
+                      <span className="text-sm font-medium text-gray-900">
+                        {item.price.toLocaleString("en-KE", {
+                          style: "currency",
+                          currency: "KES",
+                          minimumFractionDigits: 0, // remove decimals
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-500">Supplier</span>
+                      <span className="text-sm text-gray-900">
+                        {item.supplier ?? "-"}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Unit Price</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      ${item.unitPrice}
-                    </span>
+                  <div className="mt-4 flex items-center justify-between">
+                    {getStatusBadge(item.stock)}
+                    <button className="text-sm text-blue-600 hover:text-blue-500 font-medium">
+                      Restock
+                    </button>
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Supplier</span>
-                    <span className="text-sm text-gray-900">
-                      {item.supplier}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 flex items-center justify-between">
-                  {getStatusBadge(item)}
-                  <button className="text-sm text-blue-600 hover:text-blue-500 font-medium">
-                    Restock
-                  </button>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
