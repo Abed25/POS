@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { PlusIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { productApi } from "../lib/api";
+import AddProductModal from "../components/Inventory/AddProductModal";
 
 /** DB-shaped product */
 export type Product = {
@@ -13,7 +14,6 @@ export type Product = {
   sku?: string | null;
   created_at: string;
   updated_at: string;
-  // optional extra fields your API may provide
   maxStockLevel?: number;
   supplier?: string | null;
 };
@@ -25,60 +25,56 @@ export const Inventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
 
+  /** Fetch all products and normalize */
+  const fetchInventory = async () => {
+    setLoading(true);
+    try {
+      const raw = await productApi.getAll();
+      let arr: any[] = [];
+      if (Array.isArray(raw)) arr = raw;
+      else if (raw && Array.isArray((raw as any).data)) arr = (raw as any).data;
+      else if (raw && Array.isArray((raw as any).items))
+        arr = (raw as any).items;
+
+      const products: Product[] = arr.map((d: any) => {
+        const id = Number(d.id ?? d.ID ?? d._id ?? 0);
+        const price = Number(d.price ?? d.unitPrice ?? d.unit_price ?? 0);
+        const stock = Number(d.stock ?? d.currentStock ?? d.current_stock ?? 0);
+        const maxStockLevelRaw =
+          d.maxStockLevel ?? d.max_stock ?? d.maxStock ?? undefined;
+
+        return {
+          id,
+          name: d.name ?? d.productName ?? "",
+          description: d.description ?? d.desc ?? undefined,
+          price: Number.isFinite(price) ? price : 0,
+          stock: Number.isFinite(stock) ? stock : 0,
+          category: d.category ?? d.cat ?? null,
+          sku: d.sku ?? d.SKU ?? null,
+          created_at: d.created_at ?? d.createdAt ?? "",
+          updated_at: d.updated_at ?? d.updatedAt ?? "",
+          maxStockLevel:
+            maxStockLevelRaw !== undefined
+              ? Number(maxStockLevelRaw)
+              : undefined,
+          supplier: d.supplier ?? null,
+        } as Product;
+      });
+
+      setInventory(products);
+    } catch (err) {
+      console.error("Failed to fetch inventory:", err);
+      setInventory([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchInventory = async () => {
-      setLoading(true);
-      try {
-        const raw = await productApi.getAll(); // could be unknown shape
-        // normalize into array
-        let arr: any[] = [];
-        if (Array.isArray(raw)) arr = raw;
-        else if (raw && Array.isArray((raw as any).data))
-          arr = (raw as any).data;
-        else if (raw && Array.isArray((raw as any).items))
-          arr = (raw as any).items;
-        else arr = [];
-
-        const products: Product[] = arr.map((d: any) => {
-          const id = Number(d.id ?? d.ID ?? d._id ?? 0);
-          const price = Number(d.price ?? d.unitPrice ?? d.unit_price ?? 0);
-          const stock = Number(
-            d.stock ?? d.currentStock ?? d.current_stock ?? 0
-          );
-          const maxStockLevelRaw =
-            d.maxStockLevel ?? d.max_stock ?? d.maxStock ?? undefined;
-
-          return {
-            id,
-            name: d.name ?? d.productName ?? "",
-            description: d.description ?? d.desc ?? undefined,
-            price: Number.isFinite(price) ? price : 0,
-            stock: Number.isFinite(stock) ? stock : 0,
-            category: d.category ?? d.cat ?? null,
-            sku: d.sku ?? d.SKU ?? null,
-            created_at: d.created_at ?? d.createdAt ?? "",
-            updated_at: d.updated_at ?? d.updatedAt ?? "",
-            maxStockLevel:
-              maxStockLevelRaw !== undefined
-                ? Number(maxStockLevelRaw)
-                : undefined,
-            supplier: d.supplier ?? null,
-          } as Product;
-        });
-
-        setInventory(products);
-      } catch (err) {
-        console.error("Failed to fetch inventory:", err);
-        setInventory([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchInventory();
   }, []);
 
-  // derive status (you can tweak threshold or use a minStock field if you have one)
+  /** Helpers for stock status */
   const getStatus = (stock: number, min = 5) => {
     if (stock === 0) return "out_of_stock";
     if (stock <= min) return "low_stock";
@@ -116,6 +112,7 @@ export const Inventory: React.FC = () => {
 
   return (
     <div>
+      {/* Header + Add Product Button */}
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
@@ -126,13 +123,8 @@ export const Inventory: React.FC = () => {
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            Add Product
-          </button>
+          {/* ✅ Integrated Add Product Modal */}
+          <AddProductModal onAdded={() => fetchInventory()} />
         </div>
       </div>
 
@@ -244,7 +236,7 @@ export const Inventory: React.FC = () => {
                         {item.price.toLocaleString("en-KE", {
                           style: "currency",
                           currency: "KES",
-                          minimumFractionDigits: 0, // remove decimals
+                          minimumFractionDigits: 0,
                         })}
                       </span>
                     </div>
@@ -272,3 +264,5 @@ export const Inventory: React.FC = () => {
     </div>
   );
 };
+
+export default Inventory;
