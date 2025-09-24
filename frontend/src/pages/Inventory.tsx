@@ -14,6 +14,9 @@ export const Inventory: React.FC = () => {
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
   const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<"name_asc" | "stock_desc" | "stock_asc">(
+    "name_asc"
+  );
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -108,6 +111,19 @@ export const Inventory: React.FC = () => {
     return matchesFilter && matchesSearch;
   });
 
+  const sortedInventory = [...filteredInventory].sort((a, b) => {
+    if (sortBy === "name_asc") {
+      return a.name.localeCompare(b.name);
+    }
+    if (sortBy === "stock_desc") {
+      return b.stock - a.stock;
+    }
+    if (sortBy === "stock_asc") {
+      return a.stock - b.stock;
+    }
+    return 0;
+  });
+
   return (
     <div>
       {/* Header + Add Product Button */}
@@ -144,6 +160,17 @@ export const Inventory: React.FC = () => {
               onChange={(e) => setSearch(e.target.value)}
               className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
             />
+          </div>
+          <div className="w-full sm:w-auto">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="block w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition"
+            >
+              <option value="name_asc">A-Z (Name)</option>
+              <option value="stock_desc">Highest Stock First</option>
+              <option value="stock_asc">Low Stock First</option>
+            </select>
           </div>
           <div className="w-full sm:w-auto">
             <AddProductModal onAdded={fetchInventory} />
@@ -200,12 +227,12 @@ export const Inventory: React.FC = () => {
               </div>
             </div>
           ))
-        ) : filteredInventory.length === 0 ? (
+        ) : sortedInventory.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500">No inventory items found</p>
           </div>
         ) : (
-          filteredInventory.map((item) => {
+          sortedInventory.map((item) => {
             const status = getStatus(item.stock);
             const max = item.maxStockLevel ?? Math.max(20, item.stock);
             const pct = Math.min(
