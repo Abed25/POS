@@ -1,22 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { productApi } from "../lib/api";
+import { Product } from "../types";
 import AddProductModal from "../components/Inventory/AddProductModal";
-
-/** DB-shaped product */
-export type Product = {
-  id: number;
-  name: string;
-  description?: string;
-  price: number;
-  stock: number;
-  category?: string | null;
-  sku?: string | null;
-  created_at: string;
-  updated_at: string;
-  maxStockLevel?: number;
-  supplier?: string | null;
-};
+import RestockProductModal from "../components/Inventory/RestockProductModal";
 
 type FilterType = "all" | "low_stock" | "in_stock";
 
@@ -24,6 +11,8 @@ export const Inventory: React.FC = () => {
   const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>("all");
+  const [restockModalOpen, setRestockModalOpen] = useState(false);
+  const [restockProduct, setRestockProduct] = useState<Product | null>(null);
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -127,7 +116,6 @@ export const Inventory: React.FC = () => {
           <AddProductModal onAdded={() => fetchInventory()} />
         </div>
       </div>
-
       {/* Filter Tabs */}
       <div className="mb-6">
         <nav className="flex space-x-8">
@@ -162,7 +150,6 @@ export const Inventory: React.FC = () => {
           ))}
         </nav>
       </div>
-
       {/* Inventory Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
@@ -251,7 +238,12 @@ export const Inventory: React.FC = () => {
 
                   <div className="mt-4 flex items-center justify-between">
                     {getStatusBadge(item.stock)}
-                    <button className="text-sm text-blue-600 hover:text-blue-500 font-medium">
+                    <button
+                      onClick={() => {
+                        setRestockProduct(item);
+                        setRestockModalOpen(true);
+                      }}
+                    >
                       Restock
                     </button>
                   </div>
@@ -261,6 +253,13 @@ export const Inventory: React.FC = () => {
           })
         )}
       </div>
+      <RestockProductModal
+        open={restockModalOpen}
+        product={restockProduct}
+        onClose={() => setRestockModalOpen(false)}
+        onRestocked={fetchInventory}
+      />
+      ;
     </div>
   );
 };
