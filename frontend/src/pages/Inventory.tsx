@@ -126,9 +126,10 @@ export const Inventory: React.FC = () => {
 
   return (
     <div>
-      {/* Header + Add Product Button */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-        <div>
+      {/* Header + Input button */}
+      <div className="mb-6">
+        {/* Top header section */}
+        <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">
             Inventory Management
           </h1>
@@ -136,7 +137,8 @@ export const Inventory: React.FC = () => {
             Monitor and manage your product inventory
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 w-full sm:w-auto">
+        {/* Controls section: search, sort, add product */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end w-full">
           <div className="relative w-full sm:w-80">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
               <svg
