@@ -18,6 +18,8 @@ export interface Product {
   sku?: string;
   created_at: string; // timestamp -> string
   updated_at: string; // timestamp -> string
+  maxStockLevel?: number;
+  supplier?: string | null;
 }
 
 /* ---------- SALES ---------- */
