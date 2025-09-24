@@ -13,6 +13,7 @@ export const Inventory: React.FC = () => {
   const [filter, setFilter] = useState<FilterType>("all");
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
+  const [search, setSearch] = useState("");
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -93,16 +94,24 @@ export const Inventory: React.FC = () => {
 
   const filteredInventory = inventory.filter((item) => {
     const status = getStatus(item.stock);
-    if (filter === "low_stock")
-      return status === "low_stock" || status === "out_of_stock";
-    if (filter === "in_stock") return status === "in_stock";
-    return true;
+    const matchesFilter =
+      filter === "low_stock"
+        ? status === "low_stock" || status === "out_of_stock"
+        : filter === "in_stock"
+        ? status === "in_stock"
+        : true;
+
+    const matchesSearch =
+      item.name.toLowerCase().includes(search.toLowerCase()) ||
+      (item.sku && item.sku.toLowerCase().includes(search.toLowerCase()));
+
+    return matchesFilter && matchesSearch;
   });
 
   return (
     <div>
       {/* Header + Add Product Button */}
-      <div className="sm:flex sm:items-center sm:justify-between mb-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             Inventory Management
@@ -111,9 +120,34 @@ export const Inventory: React.FC = () => {
             Monitor and manage your product inventory
           </p>
         </div>
-        <div className="mt-4 sm:mt-0">
-          {/* ✅ Integrated Add Product Modal */}
-          <AddProductModal onAdded={() => fetchInventory()} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+              <svg
+                className="h-5 w-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
+                />
+              </svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
+            />
+          </div>
+          <div className="w-full sm:w-auto">
+            <AddProductModal onAdded={fetchInventory} />
+          </div>
         </div>
       </div>
       {/* Filter Tabs */}
