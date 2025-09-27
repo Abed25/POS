@@ -4,6 +4,7 @@ import { productApi } from "../lib/api";
 import { Product } from "../types";
 import AddProductModal from "../components/Inventory/AddProductModal";
 import RestockProductModal from "../components/Inventory/RestockProductModal";
+import EditProductModal from "../components/Inventory/EditProductModal";
 
 type FilterType = "all" | "low_stock" | "in_stock";
 
@@ -17,6 +18,8 @@ export const Inventory: React.FC = () => {
   const [sortBy, setSortBy] = useState<"name_asc" | "stock_desc" | "stock_asc">(
     "name_asc"
   );
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -298,16 +301,25 @@ export const Inventory: React.FC = () => {
                       </span>
                     </div>
                   </div>
-
-                  <div className="mt-4 flex items-center justify-between">
+                  <div className="mt-4 flex gap-2 justify-end">
                     {getStatusBadge(item.stock)}
                     <button
+                      className="px-3 py-1 rounded bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition"
                       onClick={() => {
                         setRestockProduct(item);
                         setRestockModalOpen(true);
                       }}
                     >
                       Restock
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditProduct(item);
+                        setEditModalOpen(true);
+                      }}
+                      className="px-3 py-1 rounded bg-yellow-500 text-white text-sm font-medium hover:bg-yellow-600 transition"
+                    >
+                      Edit
                     </button>
                   </div>
                 </div>
@@ -321,6 +333,12 @@ export const Inventory: React.FC = () => {
         product={restockProduct}
         onClose={() => setRestockModalOpen(false)}
         onRestocked={fetchInventory}
+      />
+      <EditProductModal
+        open={editModalOpen}
+        product={editProduct}
+        onClose={() => setEditModalOpen(false)}
+        onEdited={fetchInventory}
       />
       ;
     </div>
