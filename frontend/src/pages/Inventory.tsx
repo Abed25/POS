@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { productApi } from "../lib/api";
 import { Product } from "../types";
@@ -25,7 +25,11 @@ export const Inventory: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
-  // ...existing code...
+  // --- pagination / infinite scroll state ---
+  const [page, setPage] = useState(1);
+  const pageSize = 3; // adjust to taste
+  const listEndRef = useRef<HTMLDivElement | null>(null);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -113,9 +117,11 @@ export const Inventory: React.FC = () => {
         ? status === "in_stock"
         : true;
 
+    const q = search.trim().toLowerCase();
     const matchesSearch =
-      item.name.toLowerCase().includes(search.toLowerCase()) ||
-      (item.sku && item.sku.toLowerCase().includes(search.toLowerCase()));
+      q.length === 0 ||
+      item.name.toLowerCase().includes(q) ||
+      (item.sku && item.sku.toLowerCase().includes(q));
 
     return matchesFilter && matchesSearch;
   });
@@ -132,6 +138,41 @@ export const Inventory: React.FC = () => {
     }
     return 0;
   });
+
+  // reset page when filters/search/sort or inventory change
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy, filter, inventory.length]);
+
+  // pagination slice + hasMore flag
+  const paginatedInventory = sortedInventory.slice(0, page * pageSize);
+  const hasMore = sortedInventory.length > paginatedInventory.length;
+
+  // IntersectionObserver to load more when sentinel is visible
+  useEffect(() => {
+    const el = listEndRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && hasMore && !isFetchingMore && !loading) {
+            setIsFetchingMore(true);
+            // small debounce / UX delay
+            setTimeout(() => {
+              setPage((p) => p + 1);
+              setIsFetchingMore(false);
+            }, 250);
+          }
+        });
+      },
+      { root: null, rootMargin: "200px", threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, isFetchingMore, loading, listEndRef.current]);
 
   return (
     <div>
@@ -188,6 +229,7 @@ export const Inventory: React.FC = () => {
           </div>
         </div>
       </div>
+
       {/* Filter Tabs */}
       <div className="mb-6">
         <nav className="flex space-x-8">
@@ -222,6 +264,7 @@ export const Inventory: React.FC = () => {
           ))}
         </nav>
       </div>
+
       {/* Inventory Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
@@ -238,12 +281,12 @@ export const Inventory: React.FC = () => {
               </div>
             </div>
           ))
-        ) : sortedInventory.length === 0 ? (
+        ) : paginatedInventory.length === 0 ? (
           <div className="col-span-full text-center py-12">
             <p className="text-gray-500">No inventory items found</p>
           </div>
         ) : (
-          sortedInventory.map((item) => {
+          paginatedInventory.map((item) => {
             const status = getStatus(item.stock);
             const max = item.maxStockLevel ?? Math.max(20, item.stock);
             const pct = Math.min(
@@ -307,6 +350,7 @@ export const Inventory: React.FC = () => {
                       </span>
                     </div>
                   </div>
+
                   <div className="mt-4 flex gap-2 justify-end">
                     {getStatusBadge(item.stock)}
                     <button
@@ -343,6 +387,24 @@ export const Inventory: React.FC = () => {
           })
         )}
       </div>
+
+      {/* sentinel for infinite scroll */}
+      <div ref={listEndRef} />
+
+      {/* fallback / manual load more */}
+      {!loading && hasMore && (
+        <div className="mt-6 flex justify-center">
+          <button
+            className="px-4 py-2 rounded-lg border bg-white text-gray-700 hover:bg-gray-50"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={isFetchingMore}
+          >
+            {isFetchingMore ? "Loading..." : "Load more"}
+          </button>
+        </div>
+      )}
+
+      {/* modals */}
       <RestockProductModal
         open={restockModalOpen}
         product={restockProduct}
@@ -368,7 +430,6 @@ export const Inventory: React.FC = () => {
           fetchInventory();
         }}
       />
-      ;
     </div>
   );
 };
