@@ -7,7 +7,8 @@ import {
   DocumentChartBarIcon,
   UsersIcon,
   CogIcon,
-  Bars3Icon, // toggle icon
+  Bars3Icon, // menu
+  XMarkIcon, // close
 } from "@heroicons/react/24/outline";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -38,7 +39,7 @@ const navigation = [
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user } = useAuth();
-  const [isOpen, setIsOpen] = useState(true); // ⬅️ sidebar toggle
+  const [isOpen, setIsOpen] = useState(false); // closed by default
 
   const filteredNavigation = navigation.filter((item) =>
     item.roles.includes(user?.role || "")
@@ -47,22 +48,32 @@ export const Sidebar: React.FC = () => {
   return (
     <div
       className={`flex flex-col bg-gray-900 text-gray-300 transition-all duration-300
-      ${isOpen ? "w-64" : "w-20"}`}
+        ${isOpen ? "w-64" : "w-20"}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between h-16 px-4 bg-gray-900">
+      <div className="relative flex items-center h-16 px-4 bg-gray-900">
+        {/* Toggle button: shows Bars when closed, X when open */}
+        <button
+          onClick={() => setIsOpen((s) => !s)}
+          aria-label={isOpen ? "Close sidebar" : "Open sidebar"}
+          className={`${
+            isOpen
+              ? "absolute right-3 top-3 p-2 rounded-md bg-gray-800 hover:bg-gray-700 z-10"
+              : "ml-auto p-1 rounded hover:bg-gray-800"
+          }`}
+        >
+          {isOpen ? (
+            <XMarkIcon className="h-6 w-6 text-gray-200" />
+          ) : (
+            <Bars3Icon className="h-6 w-6 text-gray-300" />
+          )}
+        </button>
         <div className="flex items-center">
-          <CubeIcon className="h-8 w-8 text-blue-400" />
+          <CubeIcon className="h-8 w-8 top-1 text-blue-400" />
           {isOpen && (
             <span className="ml-2 text-xl font-bold text-white">POS Pro</span>
           )}
         </div>
-        <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="p-1 rounded hover:bg-gray-800"
-        >
-          <Bars3Icon className="h-6 w-6 text-gray-300" />
-        </button>
       </div>
 
       {/* Navigation */}
@@ -74,10 +85,8 @@ export const Sidebar: React.FC = () => {
               <NavLink
                 key={item.name}
                 to={item.href}
-                className={`
-                  group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
-                  ${isActive ? "bg-gray-800 text-white" : "hover:bg-gray-700"}
-                `}
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors
+                  ${isActive ? "bg-gray-800 text-white" : "hover:bg-gray-700"}`}
               >
                 <item.icon
                   className={`mr-3 h-6 w-6 flex-shrink-0
@@ -85,8 +94,7 @@ export const Sidebar: React.FC = () => {
                       isActive
                         ? "text-gray-300"
                         : "text-gray-400 group-hover:text-gray-300"
-                    }
-                  `}
+                    }`}
                 />
                 {isOpen && item.name}
               </NavLink>
