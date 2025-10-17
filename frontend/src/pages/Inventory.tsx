@@ -5,6 +5,7 @@ import { Product } from "../types";
 import AddProductModal from "../components/Inventory/AddProductModal";
 import RestockProductModal from "../components/Inventory/RestockProductModal";
 import EditProductModal from "../components/Inventory/EditProductModal";
+import DeleteProductModal from "../components/Inventory/DeleteProductModal";
 
 type FilterType = "all" | "low_stock" | "in_stock";
 
@@ -20,6 +21,11 @@ export const Inventory: React.FC = () => {
   );
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
+
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+
+  // ...existing code...
 
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
@@ -321,6 +327,15 @@ export const Inventory: React.FC = () => {
                     >
                       Edit
                     </button>
+                    <button
+                      className="px-3 py-1 rounded bg-white border border-red-600 text-red-600 text-sm font-medium hover:bg-red-50 transition"
+                      onClick={() => {
+                        setDeleteProduct(item);
+                        setDeleteModalOpen(true);
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               </div>
@@ -339,6 +354,19 @@ export const Inventory: React.FC = () => {
         product={editProduct}
         onClose={() => setEditModalOpen(false)}
         onEdited={fetchInventory}
+      />
+      <DeleteProductModal
+        open={deleteModalOpen}
+        product={deleteProduct}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setDeleteProduct(null);
+        }}
+        onDeleted={() => {
+          setDeleteModalOpen(false);
+          setDeleteProduct(null);
+          fetchInventory();
+        }}
       />
       ;
     </div>
