@@ -12,6 +12,7 @@ type FilterType = "all" | "low_stock" | "in_stock";
 export const Inventory: React.FC = () => {
   const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
@@ -34,6 +35,7 @@ export const Inventory: React.FC = () => {
   /** Fetch all products and normalize */
   const fetchInventory = async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const raw = await productApi.getAll();
       let arr: any[] = [];
@@ -68,8 +70,12 @@ export const Inventory: React.FC = () => {
       });
 
       setInventory(products);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to fetch inventory:", err);
+      const message =
+        err?.message?.toString() ||
+        "Unable to load products. Please check your network connection or try again.";
+      setFetchError(message);
       setInventory([]);
     } finally {
       setLoading(false);
@@ -78,6 +84,7 @@ export const Inventory: React.FC = () => {
 
   useEffect(() => {
     fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /** Helpers for stock status */
@@ -148,6 +155,10 @@ export const Inventory: React.FC = () => {
   const paginatedInventory = sortedInventory.slice(0, page * pageSize);
   const hasMore = sortedInventory.length > paginatedInventory.length;
 
+  // totals used for contextual empty states
+  const totalProducts = inventory.length;
+  const filteredCount = filteredInventory.length;
+
   // IntersectionObserver to load more when sentinel is visible
   useEffect(() => {
     const el = listEndRef.current;
@@ -157,7 +168,6 @@ export const Inventory: React.FC = () => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && hasMore && !isFetchingMore && !loading) {
             setIsFetchingMore(true);
-            // small debounce / UX delay
             setTimeout(() => {
               setPage((p) => p + 1);
               setIsFetchingMore(false);
@@ -281,9 +291,88 @@ export const Inventory: React.FC = () => {
               </div>
             </div>
           ))
-        ) : paginatedInventory.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <p className="text-gray-500">No inventory items found</p>
+        ) : fetchError ? (
+          <div className="col-span-full">
+            <div className="bg-white rounded-lg shadow p-6 text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Unable to load products
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">{fetchError}</p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => fetchInventory()}
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Reload page
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                If the problem persists, check your connection or contact
+                support.
+              </p>
+            </div>
+          </div>
+        ) : totalProducts === 0 ? (
+          // true empty database state
+          <div className="col-span-full">
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No products yet
+              </h3>
+              <p className="text-sm text-gray-600 mb-6">
+                Your inventory is empty. Start by adding your first product.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <AddProductModal onAdded={fetchInventory} />
+                <button
+                  onClick={() => fetchInventory()}
+                  className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Refresh
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : filteredCount === 0 ? (
+          // no results for current filter/search
+          <div className="col-span-full">
+            <div className="bg-white rounded-lg shadow p-8 text-center">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                No items match this view
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                {filter === "low_stock"
+                  ? "No alerts right now — all products are sufficiently stocked."
+                  : filter === "in_stock"
+                  ? "No items currently in stock."
+                  : "No products match your search or filters."}
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setFilter("all")}
+                  className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                >
+                  View all products
+                </button>
+                <AddProductModal onAdded={fetchInventory} />
+                <button
+                  onClick={() => fetchInventory()}
+                  className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Refresh
+                </button>
+              </div>
+              <p className="mt-3 text-xs text-gray-400">
+                Try clearing the search box or switching tabs to view other
+                items.
+              </p>
+            </div>
           </div>
         ) : (
           paginatedInventory.map((item) => {
