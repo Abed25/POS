@@ -6,10 +6,13 @@ import AddProductModal from "../components/Inventory/AddProductModal";
 import RestockProductModal from "../components/Inventory/RestockProductModal";
 import EditProductModal from "../components/Inventory/EditProductModal";
 import DeleteProductModal from "../components/Inventory/DeleteProductModal";
+import { useSnackbar } from "notistack";
 
 type FilterType = "all" | "low_stock" | "in_stock";
 
 export const Inventory: React.FC = () => {
+  const { enqueueSnackbar } = useSnackbar();
+
   const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -76,9 +79,20 @@ export const Inventory: React.FC = () => {
         err?.message?.toString() ||
         "Unable to load products. Please check your network connection or try again.";
       setFetchError(message);
+      enqueueSnackbar(message, { variant: "error" });
       setInventory([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // helper to refresh inventory and optionally show success toast
+  const refreshAndNotify = async (message?: string) => {
+    try {
+      await fetchInventory();
+      if (message) enqueueSnackbar(message, { variant: "success" });
+    } catch {
+      // fetchInventory already handles errors/toasts
     }
   };
 
@@ -235,7 +249,9 @@ export const Inventory: React.FC = () => {
             </select>
           </div>
           <div className="w-full sm:w-auto">
-            <AddProductModal onAdded={fetchInventory} />
+            <AddProductModal
+              onAdded={() => refreshAndNotify("Product added")}
+            />
           </div>
         </div>
       </div>
@@ -300,7 +316,7 @@ export const Inventory: React.FC = () => {
               <p className="text-sm text-gray-600 mb-4">{fetchError}</p>
               <div className="flex items-center justify-center gap-3">
                 <button
-                  onClick={() => fetchInventory()}
+                  onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
                 >
                   Retry
@@ -329,9 +345,11 @@ export const Inventory: React.FC = () => {
                 Your inventory is empty. Start by adding your first product.
               </p>
               <div className="flex items-center justify-center gap-3">
-                <AddProductModal onAdded={fetchInventory} />
+                <AddProductModal
+                  onAdded={() => refreshAndNotify("Product added")}
+                />
                 <button
-                  onClick={() => fetchInventory()}
+                  onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
                 >
                   Refresh
@@ -360,9 +378,11 @@ export const Inventory: React.FC = () => {
                 >
                   View all products
                 </button>
-                <AddProductModal onAdded={fetchInventory} />
+                <AddProductModal
+                  onAdded={() => refreshAndNotify("Product added")}
+                />
                 <button
-                  onClick={() => fetchInventory()}
+                  onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
                 >
                   Refresh
@@ -498,13 +518,13 @@ export const Inventory: React.FC = () => {
         open={restockModalOpen}
         product={restockProduct}
         onClose={() => setRestockModalOpen(false)}
-        onRestocked={fetchInventory}
+        onRestocked={() => refreshAndNotify("Stock updated")}
       />
       <EditProductModal
         open={editModalOpen}
         product={editProduct}
         onClose={() => setEditModalOpen(false)}
-        onEdited={fetchInventory}
+        onEdited={() => refreshAndNotify("Product updated")}
       />
       <DeleteProductModal
         open={deleteModalOpen}
@@ -516,7 +536,7 @@ export const Inventory: React.FC = () => {
         onDeleted={() => {
           setDeleteModalOpen(false);
           setDeleteProduct(null);
-          fetchInventory();
+          refreshAndNotify("Product deleted");
         }}
       />
     </div>
