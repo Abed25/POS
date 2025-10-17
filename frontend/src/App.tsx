@@ -5,6 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { SnackbarProvider } from "notistack";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { Layout } from "./components/Layout/Layout";
 import { LoginForm } from "./components/Login/LoginForm";
@@ -121,11 +122,16 @@ const AppRoutes: React.FC = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
-    </AuthProvider>
+    <SnackbarProvider
+      maxSnack={4}
+      anchorOrigin={{ vertical: "top", horizontal: "right" }}
+    >
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </AuthProvider>
+    </SnackbarProvider>
   );
 }
 
