@@ -7,11 +7,15 @@ import RestockProductModal from "../components/Inventory/RestockProductModal";
 import EditProductModal from "../components/Inventory/EditProductModal";
 import DeleteProductModal from "../components/Inventory/DeleteProductModal";
 import { useSnackbar } from "notistack";
+// 💡 1. IMPORT THE REFRESH CONTEXT HOOK
+import { useMetricsRefresh } from "../contexts/MetricsRefreshContext"; // <-- Adjust path as needed
 
 type FilterType = "all" | "low_stock" | "in_stock";
 
 export const Inventory: React.FC = () => {
   const { enqueueSnackbar } = useSnackbar();
+  // 💡 2. CALL THE HOOK TO GET THE TRIGGER FUNCTION
+  const { triggerRefresh } = useMetricsRefresh();
 
   const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,13 +33,13 @@ export const Inventory: React.FC = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
-  // --- pagination / infinite scroll state ---
+  // --- pagination / infinite scroll state (unchanged) ---
   const [page, setPage] = useState(1);
-  const pageSize = 3; // adjust to taste
+  const pageSize = 6;
   const listEndRef = useRef<HTMLDivElement | null>(null);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  /** Fetch all products and normalize */
+  /** Fetch all products and normalize (unchanged) */
   const fetchInventory = async () => {
     setLoading(true);
     setFetchError(null);
@@ -86,11 +90,14 @@ export const Inventory: React.FC = () => {
     }
   };
 
-  // helper to refresh inventory and optionally show success toast
+  /** Helper to refresh inventory and optionally show success toast */
   const refreshAndNotify = async (message?: string) => {
     try {
       await fetchInventory();
       if (message) enqueueSnackbar(message, { variant: "success" });
+
+      // 💡 CRITICAL CHANGE: Trigger the dashboard metrics refresh
+      triggerRefresh();
     } catch {
       // fetchInventory already handles errors/toasts
     }
@@ -101,7 +108,8 @@ export const Inventory: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /** Helpers for stock status */
+  // ... (rest of the component logic is unchanged)
+
   const getStatus = (stock: number, min = 5) => {
     if (stock === 0) return "out_of_stock";
     if (stock <= min) return "low_stock";
@@ -200,6 +208,8 @@ export const Inventory: React.FC = () => {
 
   return (
     <div>
+      {/* ... (rest of the render JSX remains unchanged) ... */}
+
       {/* Header + Input button */}
       <div className="mb-6">
         {/* Top header section */}
@@ -247,6 +257,7 @@ export const Inventory: React.FC = () => {
             </select>
           </div>
           <div className="w-full sm:w-auto">
+            {/* The onAdded prop calls refreshAndNotify, which now triggers context */}
             <AddProductModal
               onAdded={() => refreshAndNotify("Product added")}
             />
@@ -353,6 +364,10 @@ export const Inventory: React.FC = () => {
                   Refresh
                 </button>
               </div>
+              <p className="mt-3 text-xs text-gray-400">
+                If the problem persists, check your connection or contact
+                support.
+              </p>
             </div>
           </div>
         ) : filteredCount === 0 ? (
@@ -516,13 +531,13 @@ export const Inventory: React.FC = () => {
         open={restockModalOpen}
         product={restockProduct}
         onClose={() => setRestockModalOpen(false)}
-        onRestocked={() => refreshAndNotify("Stock updated")}
+        onRestocked={() => refreshAndNotify("Stock updated")} // <-- Calls refreshAndNotify
       />
       <EditProductModal
         open={editModalOpen}
         product={editProduct}
         onClose={() => setEditModalOpen(false)}
-        onEdited={() => refreshAndNotify("Product updated")}
+        onEdited={() => refreshAndNotify("Product updated")} // <-- Calls refreshAndNotify
       />
       <DeleteProductModal
         open={deleteModalOpen}
@@ -534,7 +549,7 @@ export const Inventory: React.FC = () => {
         onDeleted={() => {
           setDeleteModalOpen(false);
           setDeleteProduct(null);
-          refreshAndNotify("Product deleted");
+          refreshAndNotify("Product deleted"); // <-- Calls refreshAndNotify
         }}
       />
     </div>

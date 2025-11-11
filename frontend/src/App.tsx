@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import { SnackbarProvider } from "notistack";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { MetricsRefreshProvider } from "./contexts/MetricsRefreshContext.tsx";
 import { Layout } from "./components/Layout/Layout";
 import { LoginForm } from "./components/Login/LoginForm";
 import { Dashboard } from "./pages/Dashboard";
@@ -136,9 +137,11 @@ function App() {
       anchorOrigin={{ vertical: "top", horizontal: "right" }}
     >
       <AuthProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <MetricsRefreshProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </MetricsRefreshProvider>
       </AuthProvider>
     </SnackbarProvider>
   );
