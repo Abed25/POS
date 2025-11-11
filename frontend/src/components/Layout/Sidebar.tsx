@@ -14,26 +14,26 @@ import { useAuth } from "../../contexts/AuthContext";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: HomeIcon, roles: ["admin", "cashier"] },
+  // {
+  //   name: "Sales",
+  //   href: "/sales",
+  //   icon: ShoppingCartIcon,
+  //   roles: ["admin", "cashier"],
+  // },
   {
-    name: "Sales",
-    href: "/sales",
-    icon: ShoppingCartIcon,
-    roles: ["admin", "cashier"],
-  },
-  {
-    name: "Inventory",
+    name: "Stock",
     href: "/inventory",
     icon: CubeIcon,
     roles: ["admin", "cashier"],
   },
-  {
-    name: "Reports",
-    href: "/reports",
-    icon: DocumentChartBarIcon,
-    roles: ["admin"],
-  },
-  { name: "Users", href: "/users", icon: UsersIcon, roles: ["admin"] },
-  { name: "Settings", href: "/settings", icon: CogIcon, roles: ["admin"] },
+  // {
+  //   name: "Reports",
+  //   href: "/reports",
+  //   icon: DocumentChartBarIcon,
+  //   roles: ["admin"],
+  // },
+  // { name: "Users", href: "/users", icon: UsersIcon, roles: ["admin"] },
+  // { name: "Settings", href: "/settings", icon: CogIcon, roles: ["admin"] },
 ];
 
 export const Sidebar: React.FC = () => {

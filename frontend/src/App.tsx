@@ -12,6 +12,7 @@ import { LoginForm } from "./components/Login/LoginForm";
 import { Dashboard } from "./pages/Dashboard";
 import { Sales } from "./pages/Sales";
 import { Inventory } from "./pages/Inventory";
+import Test from "./pages/Test";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -71,6 +72,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Inventory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/test"
+        element={
+          <ProtectedRoute>
+            <Test />
           </ProtectedRoute>
         }
       />
