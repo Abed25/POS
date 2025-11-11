@@ -84,3 +84,29 @@ export const updateProductStock = async (product_id, quantity) => {
     product_id,
   ]);
 };
+
+//Product summarries
+
+// Get product count and total stock value
+export const getSummary = async () => {
+  // Define the two SQL queries
+  const countQuery = "SELECT COUNT(*) AS product_count FROM products";
+  const valueQuery =
+    "SELECT SUM(price * stock) AS total_stock_value FROM products";
+
+  // Execute both queries concurrently
+  const [[countResult], [valueResult]] = await Promise.all([
+    db.query(countQuery),
+    db.query(valueQuery),
+  ]);
+
+  // Extract the results from the query response format (assuming [rows] = await db.query(...))
+  const product_count = countResult[0].product_count;
+  const total_stock_value = valueResult[0].total_stock_value;
+
+  // Return a single object with the combined summary
+  return {
+    product_count,
+    total_stock_value,
+  };
+};

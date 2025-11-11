@@ -5,6 +5,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  getSummary,
 } from "../models/productModel.mjs";
 import { patchProduct as patchProductModel } from "../models/productModel.mjs";
 
@@ -118,5 +119,27 @@ export const removeProduct = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to delete product", error: error.message });
+  }
+};
+
+// /**
+//  * Controller function to get the product summary (count and total stock value).
+//  * @param {object} req - Express request object
+//  * @param {object} res - Express response object
+//  */
+export const getProductSummary = async (req, res) => {
+  try {
+    // 1. Call the getSummary function from the model
+    const summaryData = await getSummary();
+
+    // 2. Respond with the summary data
+    res.status(200).json(summaryData);
+  } catch (error) {
+    console.error("Error fetching product summary:", error);
+    // 3. Handle errors and send a 500 status code
+    res.status(500).json({
+      message: "Failed to retrieve product summary.",
+      error: error.message,
+    });
   }
 };
