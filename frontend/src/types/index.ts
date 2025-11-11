@@ -22,6 +22,11 @@ export interface Product {
   supplier?: string | null;
 }
 
+export interface ProductMetrics {
+  product_count: number;
+  total_stock_value: string; // Keep as string or convert to number, depending on how you want to handle it
+}
+
 /* ---------- SALES ---------- */
 export interface Sale {
   id: number;
