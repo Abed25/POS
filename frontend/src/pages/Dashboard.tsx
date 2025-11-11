@@ -1,92 +1,39 @@
-import React, { useState, useEffect } from "react";
-import {
-  CurrencyDollarIcon,
-  ShoppingCartIcon,
-  CubeIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/react/24/outline";
+import React, { useState, useEffect, useCallback } from "react";
+import { CubeIcon, CurrencyDollarIcon } from "@heroicons/react/24/outline";
 import { MetricCard } from "../components/Dashboard/MetricCard";
-import { RevenueChart } from "../components/Dashboard/RevenueChart";
-import { StockAlerts } from "../components/Dashboard/StockAlerts";
-import { DashboardMetrics, StockItem } from "../types";
-import { salesApi, stockApi } from "../lib/api";
+import { ProductMetrics } from "../types";
+import { productApi } from "../lib/api";
+// 💡 Import the custom hook from the new context file
+import { useMetricsRefresh } from "../contexts/MetricsRefreshContext"; // <-- Adjust the path!
 
+// Note: The Dashboard component no longer needs to accept metricsRefresh or setMetricsRefresh as props.
 export const Dashboard: React.FC = () => {
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [revenueData, setRevenueData] = useState<any[]>([]);
-  const [stockAlerts, setStockAlerts] = useState<StockItem[]>([]);
+  // 💡 Retrieve the metricsRefresh value from context
+  const { metricsRefresh } = useMetricsRefresh();
+
+  const [metrics, setMetrics] = useState<ProductMetrics | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
-
-        // In a real app, these would be parallel API calls
-        const [metricsResponse, chartResponse, alertsResponse] =
-          await Promise.all([
-            salesApi.getDashboardMetrics().catch(() => ({
-              todayRevenue: 2450.5,
-              todaySales: 32,
-              monthRevenue: 48250.75,
-              monthSales: 847,
-              inventoryValue: 125000,
-              lowStockAlerts: 8,
-              revenueGrowth: 12.5,
-              salesGrowth: 8.2,
-            })),
-            salesApi.getRevenueChart("30d").catch(() =>
-              Array.from({ length: 30 }, (_, i) => ({
-                date: new Date(
-                  Date.now() - (29 - i) * 24 * 60 * 60 * 1000
-                ).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                }),
-                revenue: Math.floor(Math.random() * 3000) + 1000,
-                sales: Math.floor(Math.random() * 50) + 10,
-              }))
-            ),
-            stockApi.getLowStockAlerts().catch(() => [
-              {
-                id: "1",
-                productName: "Wireless Headphones",
-                currentStock: 5,
-                minStockLevel: 10,
-                maxStockLevel: 50,
-                unitPrice: 99.99,
-                category: "Electronics",
-                supplier: "TechCorp",
-                lastRestocked: "2024-01-15",
-                status: "low_stock" as const,
-              },
-              {
-                id: "2",
-                productName: "Coffee Beans Premium",
-                currentStock: 0,
-                minStockLevel: 20,
-                maxStockLevel: 100,
-                unitPrice: 24.99,
-                category: "Food & Beverage",
-                supplier: "CoffeeWorld",
-                lastRestocked: "2024-01-10",
-                status: "out_of_stock" as const,
-              },
-            ]),
-          ]);
-
-        setMetrics(metricsResponse as any);
-        setRevenueData(chartResponse as any);
-        setStockAlerts(alertsResponse as any);
-      } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboardData();
+  // Memoized function to fetch the summary data
+  const fetchMetrics = useCallback(async () => {
+    try {
+      setLoading(true);
+      const rawData = await productApi.getSummary();
+      const data = rawData as ProductMetrics;
+      setMetrics(data);
+    } catch (err) {
+      console.error("Failed to fetch product metrics:", err);
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // 2. Fetch data on mount AND whenever metricsRefresh (from context) is incremented
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics, metricsRefresh]); // <-- Dependency on the context value
 
   if (loading) {
     return (
@@ -95,6 +42,24 @@ export const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  if (error) {
+    return <div>Error loading metrics.</div>;
+  }
+
+  // Helper for KES formatting
+  const formatKESValue = (value: number | undefined) => {
+    // Default to 0 if value is undefined or null
+    const rawValue = value || 0;
+
+    // Use 'en-US' locale for comma-separated thousands and two decimal places
+    const formatted = new Intl.NumberFormat("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(rawValue);
+
+    return `KES ${formatted}`;
+  };
 
   return (
     <div>
@@ -107,42 +72,30 @@ export const Dashboard: React.FC = () => {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        {/* Total Products (Count) */}
         <MetricCard
-          title="Today's Revenue"
-          value={metrics?.todayRevenue || 0}
-          change={metrics?.revenueGrowth}
-          icon={CurrencyDollarIcon}
-          color="green"
-        />
-        <MetricCard
-          title="Today's Sales"
-          value={metrics?.todaySales || 0}
-          change={metrics?.salesGrowth}
-          icon={ShoppingCartIcon}
-          color="blue"
-        />
-        <MetricCard
-          title="Inventory Value"
-          value={metrics?.inventoryValue || 0}
+          title="Total Products"
+          value={metrics?.product_count || 0}
           icon={CubeIcon}
           color="yellow"
         />
+
+        {/* Total Stock Value */}
         <MetricCard
-          title="Stock Alerts"
-          value={metrics?.lowStockAlerts || 0}
-          icon={ExclamationTriangleIcon}
-          color="red"
+          title="Total Stock Value"
+          // CORRECTED: Use the helper function with Intl.NumberFormat for thousands separator
+          value={formatKESValue(metrics?.total_stock_value)}
+          icon={CurrencyDollarIcon}
+          color="green"
         />
       </div>
 
-      {/* Charts and Alerts */}
+      {/* Charts and Alerts (commented out) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <RevenueChart data={revenueData} />
+          {/* <RevenueChart data={revenueData} /> */}
         </div>
-        <div>
-          <StockAlerts items={stockAlerts} />
-        </div>
+        <div>{/* <StockAlerts items={stockAlerts} /> */}</div>
       </div>
     </div>
   );
