@@ -24,7 +24,7 @@ export interface Product {
 
 export interface ProductMetrics {
   product_count: number;
-  total_stock_value: string; // Keep as string or convert to number, depending on how you want to handle it
+  total_stock_value: number; // Keep as string or convert to number, depending on how you want to handle it
 }
 
 /* ---------- SALES ---------- */
