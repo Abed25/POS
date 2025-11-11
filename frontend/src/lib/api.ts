@@ -56,6 +56,7 @@ export const authApi = {
 export const productApi = {
   getAll: () => apiRequest("/products"),
   getById: (id: number) => apiRequest(`/products/${id}`),
+  getSummary: () => apiRequest("/products/summary"),
   add: (data: any) =>
     apiRequest("/products", { method: "POST", body: JSON.stringify(data) }),
   update: (id: number, data: any) =>
