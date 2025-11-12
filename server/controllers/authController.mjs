@@ -14,7 +14,7 @@ export async function register(req, res) {
     const userId = await createUser(
       username,
       hashedPassword,
-      role || "cashier"
+      role || "customer"
     );
 
     res.status(201).json({ message: "User registered", userId });
