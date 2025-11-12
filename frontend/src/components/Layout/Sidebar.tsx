@@ -13,7 +13,12 @@ import {
 import { useAuth } from "../../contexts/AuthContext";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: HomeIcon, roles: ["admin", "cashier"] },
+  {
+    name: "Dashboard",
+    href: "/",
+    icon: HomeIcon,
+    roles: ["admin", "cashier", "customer"],
+  },
   // {
   //   name: "Sales",
   //   href: "/sales",
@@ -26,6 +31,7 @@ const navigation = [
     icon: CubeIcon,
     roles: ["admin", "cashier"],
   },
+
   // {
   //   name: "Reports",
   //   href: "/reports",
@@ -34,6 +40,13 @@ const navigation = [
   // },
   // { name: "Users", href: "/users", icon: UsersIcon, roles: ["admin"] },
   // { name: "Settings", href: "/settings", icon: CogIcon, roles: ["admin"] },
+
+  {
+    name: "products",
+    href: "/products",
+    icon: CubeIcon,
+    roles: ["admin", "cashier", "customer"],
+  },
 ];
 
 export const Sidebar: React.FC = () => {
