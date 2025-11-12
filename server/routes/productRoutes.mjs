@@ -15,7 +15,7 @@ import { protect, authorize } from "../middleware/authMiddleware.mjs";
 const router = express.Router();
 
 // Cashier & admin: view products
-router.get("/", protect, authorize("admin", "cashier"), getAllProducts);
+router.get("/", protect, authorize("admin", "cashier","customer"), getAllProducts);
 router.get("/summary", protect, authorize("admin"), getProductSummary);
 router.get("/:id", protect, authorize("admin", "cashier"), getSingleProduct);
 
