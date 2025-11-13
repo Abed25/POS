@@ -15,19 +15,73 @@ export const createSale = async ({
 };
 
 export const getSales = async () => {
-  const [rows] = await db.query("SELECT * FROM sales ORDER BY sale_date DESC");
+  const [rows] = await db.query(
+    `SELECT 
+    s.id,
+    p.name AS product_name,
+    s.unit_price,
+    s.quantity,
+    s.total_price,
+    u.username AS seller,
+    s.sale_date,     
+    s.receipt_number
+FROM 
+    sales s
+INNER JOIN 
+    products p ON s.product_id = p.id
+INNER JOIN 
+    users u ON s.user_id = u.id
+ORDER BY 
+    s.sale_date DESC`
+  );
   return rows;
 };
 
 export const getSaleById = async (id) => {
-  const [rows] = await db.query("SELECT * FROM sales WHERE id = ?", [id]);
+  const [rows] = await db.query(
+    `SELECT 
+    s.id,
+    p.name AS product_name,
+    s.unit_price,
+    s.quantity,
+    s.total_price,
+    u.username AS seller,
+    s.sale_date,     
+    s.receipt_number
+FROM 
+    sales s
+INNER JOIN 
+    products p ON s.product_id = p.id
+INNER JOIN 
+    users u ON s.user_id = u.id
+WHERE s.id = ?`,
+    [id]
+  );
   return rows[0];
 };
 
 // Get sales by date range
 export const getSalesByDateRange = async (from, to) => {
   const [rows] = await db.query(
-    "SELECT * FROM sales WHERE sale_date BETWEEN ? AND ? ORDER BY sale_date ASC",
+    `SELECT 
+        s.id,
+        p.name AS product_name, 
+        u.username AS seller,  
+        s.unit_price,
+        s.quantity,
+        s.total_price,
+        s.sale_date,    
+        s.receipt_number
+    FROM 
+        sales s
+    INNER JOIN 
+        products p ON s.product_id = p.id
+    INNER JOIN 
+        users u ON s.user_id = u.id
+    WHERE 
+        s.sale_date BETWEEN ? AND ? 
+    ORDER BY 
+        s.sale_date ASC`,
     [from, to]
   );
   return rows;
@@ -36,9 +90,25 @@ export const getSalesByDateRange = async (from, to) => {
 // Get sales by cashier (user_id)
 export const getSalesByUser = async (user_id) => {
   const [rows] = await db.query(
-    "SELECT s.id, s.product_id, p.name AS product_name, s.quantity, s.total_price, s.sale_date " +
-      "FROM sales s LEFT JOIN  products p ON s.product_id = p.id " +
-      "WHERE s.user_id = ? ORDER BY s.sale_date DESC",
+    `SELECT 
+        s.id,
+        p.name AS product_name, 
+        s.unit_price,           
+        s.quantity,
+        s.total_price,
+        u.username AS seller,
+        s.sale_date,
+        s.receipt_number
+    FROM 
+        sales s
+    LEFT JOIN 
+        products p ON s.product_id = p.id
+    INNER JOIN 
+        users u ON s.user_id = u.id 
+    WHERE 
+        s.user_id = ?
+    ORDER BY 
+        s.sale_date DESC`,
     [user_id]
   );
   return rows;
