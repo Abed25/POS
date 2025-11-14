@@ -1,82 +1,59 @@
 import React, { useState, useEffect } from "react";
 import { PlusIcon, FunnelIcon } from "@heroicons/react/24/outline";
-import { Sale } from "../types";
 import { salesApi } from "../lib/api";
 import { format } from "date-fns";
+import { Sale } from "../types";
 
-export const Sales: React.FC = () => {
+export const Sales = () => {
+  // Using the imported Sale type for state initialization
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [filters, setFilters] = useState({
     from: "",
     to: "",
     status: "",
   });
 
+  // Fetch sales whenever 'from' or 'to' filters change
   useEffect(() => {
     fetchSales();
-  }, [currentPage, filters]);
+  }, [filters.from, filters.to]);
 
   const fetchSales = async () => {
     try {
       setLoading(true);
-      const response = await salesApi.getSales(
+
+      // The salesApi.list logic (updated previously) handles calling /sales or /sales/range
+      const apiResponse = await salesApi.list(
         filters.from || undefined,
-        filters.to || undefined,
-        currentPage,
-        20
+        filters.to || undefined
       );
 
-      // Mock response structure - adjust based on your actual API
-      setSales(
-        (response as any).data || [
-          {
-            id: "1",
-            productName: "Wireless Headphones",
-            quantity: 2,
-            unitPrice: 99.99,
-            totalAmount: 199.98,
-            cashier: "John Doe",
-            timestamp: new Date().toISOString(),
-            status: "completed",
-          },
-          {
-            id: "2",
-            productName: "Coffee Beans Premium",
-            quantity: 3,
-            unitPrice: 24.99,
-            totalAmount: 74.97,
-            cashier: "Jane Smith",
-            timestamp: new Date(Date.now() - 3600000).toISOString(),
-            status: "completed",
-          },
-        ]
-      );
-
-      setTotalPages((response as any).totalPages || 1);
+      setSales(apiResponse as Sale[]);
     } catch (error) {
       console.error("Failed to fetch sales:", error);
+      setSales([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status) => {
     const colors = {
       completed: "bg-green-100 text-green-800",
       pending: "bg-yellow-100 text-yellow-800",
       refunded: "bg-red-100 text-red-800",
     };
 
+    const safeStatus = status || "completed";
+
     return (
       <span
         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-          colors[status as keyof typeof colors]
+          colors[safeStatus] || "bg-gray-100 text-gray-800"
         }`}
       >
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {safeStatus.charAt(0).toUpperCase() + safeStatus.slice(1)}
       </span>
     );
   };
@@ -178,7 +155,7 @@ export const Sales: React.FC = () => {
                   Total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Cashier
+                  SELLER
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -208,22 +185,24 @@ export const Sales: React.FC = () => {
                 sales.map((sale) => (
                   <tr key={sale.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {sale.productName}
+                      {sale.product_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {sale.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      ${sale.unitPrice.toFixed(2)}
+                      {/* Currency updated to KES */}
+                      {`KES ${Number(sale.unit_price || 0).toFixed(2)}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      ${sale.totalAmount.toFixed(2)}
+                      {/* Currency updated to KES */}
+                      {`KES ${Number(sale.total_price).toFixed(2)}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {sale.cashier}
+                      {sale.seller}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {format(new Date(sale.timestamp), "MMM dd, yyyy HH:mm")}
+                      {format(new Date(sale.sale_date), "MMM dd, yyyy HH:mm")}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(sale.status)}
@@ -234,58 +213,6 @@ export const Sales: React.FC = () => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div className="flex-1 flex justify-between sm:hidden">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() =>
-                  setCurrentPage(Math.min(totalPages, currentPage + 1))
-                }
-                disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm text-gray-700">
-                  Page <span className="font-medium">{currentPage}</span> of{" "}
-                  <span className="font-medium">{totalPages}</span>
-                </p>
-              </div>
-              <div>
-                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Previous
-                  </button>
-                  <button
-                    onClick={() =>
-                      setCurrentPage(Math.min(totalPages, currentPage + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    Next
-                  </button>
-                </nav>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
