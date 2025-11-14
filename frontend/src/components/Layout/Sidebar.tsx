@@ -19,12 +19,12 @@ const navigation = [
     icon: HomeIcon,
     roles: ["admin", "cashier", "customer"],
   },
-  // {
-  //   name: "Sales",
-  //   href: "/sales",
-  //   icon: ShoppingCartIcon,
-  //   roles: ["admin", "cashier"],
-  // },
+{
+  name: "Sales",
+  href: "/sales",
+  icon: ShoppingCartIcon,
+  roles: ["admin", "cashier"],
+},
   {
     name: "Stock",
     href: "/inventory",
