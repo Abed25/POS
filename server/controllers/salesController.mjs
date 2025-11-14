@@ -31,11 +31,13 @@ export const addSale = async (req, res) => {
     }
 
     // 3. Calculate total price
-    const total_price = product.price * quantity;
+    const unit_price = product.price;
+    const total_price = unit_price * quantity;
 
     // 4. Insert into sales with userId
     const newSale = await createSale({
       product_id,
+      unit_price,
       quantity,
       total_price,
       user_id: userId, // 👈 add user ID

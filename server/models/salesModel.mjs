@@ -2,16 +2,24 @@ import db from "../config/db.mjs";
 
 export const createSale = async ({
   product_id,
+  unit_price,
   quantity,
   total_price,
   user_id,
 }) => {
   const [result] = await db.query(
-    "INSERT INTO sales (product_id, quantity, total_price, user_id) VALUES (?, ?, ?, ?)",
-    [product_id, quantity, total_price, user_id]
+    "INSERT INTO sales (product_id,unit_price, quantity, total_price, user_id) VALUES (?, ?, ?, ?, ?)",
+    [product_id, unit_price, quantity, total_price, user_id]
   );
 
-  return { id: result.insertId, product_id, quantity, total_price, user_id };
+  return {
+    id: result.insertId,
+    product_id,
+    unit_price,
+    quantity,
+    total_price,
+    user_id,
+  };
 };
 
 export const getSales = async () => {
