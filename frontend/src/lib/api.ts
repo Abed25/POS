@@ -75,13 +75,31 @@ export const productApi = {
 /* ---------- SALES ---------- */
 export const salesApi = {
   list: (from?: string, to?: string) => {
+    // Determine if the request is filtered (i.e., if 'from' or 'to' has a value)
+    // The !! converts the string (or undefined) to a boolean.
+    const isFiltered = !!from || !!to;
+
+    let url: string;
     const params = new URLSearchParams();
-    if (from) params.append("from", from);
-    if (to) params.append("to", to);
-    return apiRequest(`/sales?${params.toString()}`);
+
+    if (isFiltered) {
+      // 1. If filtering, use the dedicated range endpoint and append parameters
+      url = "/sales/range";
+      if (from) params.append("from", from);
+      if (to) params.append("to", to);
+    } else {
+      // 2. If no filters are set, use the general endpoint to get ALL sales
+      url = "/sales";
+    }
+
+    // Construct the final request URL
+    // The params.toString() will be empty if url is /sales, or contain dates if url is /sales/range
+    return apiRequest(`${url}?${params.toString()}`);
   },
+
   create: (data: any) =>
     apiRequest("/sales", { method: "POST", body: JSON.stringify(data) }),
+
   getById: (id: number) => apiRequest(`/sales/${id}`),
 };
 
