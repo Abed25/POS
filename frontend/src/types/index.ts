@@ -30,14 +30,28 @@ export interface ProductMetrics {
 /* ---------- SALES ---------- */
 export interface Sale {
   id: number;
-  productId: number;
-  productName: string;
+  // product_id is missing from API, but if you re-add it:
+  // product_id?: number;
+
+  product_name: string;
   quantity: number;
-  unitPrice: number;
-  totalAmount: number;
-  cashier: string;
-  timestamp: string; // datetime from DB
-  status?: "completed" | "refunded" | "pending"; // optional if not stored
+
+  // unit_price can be null from the database
+  unit_price: number | string | null;
+
+  // total_price is returned as a string
+  total_price: string;
+
+  // seller is returned instead of cashier
+  seller: string;
+
+  // sale_date is returned instead of timestamp
+  sale_date: string;
+
+  // status is optional/missing from API
+  status?: "completed" | "refunded" | "pending";
+
+  receipt_number: number | null;
 }
 
 /* ---------- SALES SUMMARY REPORT ---------- */
