@@ -19,12 +19,12 @@ const navigation = [
     icon: HomeIcon,
     roles: ["admin", "cashier", "customer"],
   },
-{
-  name: "Sales",
-  href: "/sales",
-  icon: ShoppingCartIcon,
-  roles: ["admin", "cashier"],
-},
+  {
+    name: "Sales",
+    href: "/sales",
+    icon: ShoppingCartIcon,
+    roles: ["admin", "cashier"],
+  },
   {
     name: "Stock",
     href: "/inventory",
@@ -82,7 +82,7 @@ export const Sidebar: React.FC = () => {
           )}
         </button>
         <div className="flex items-center">
-          <CubeIcon className="h-8 w-8 top-1 text-blue-400" />
+          <CubeIcon className="h-8 w-8 top-2 text-blue-400" />
           {isOpen && (
             <span className="ml-2 text-xl font-bold text-white">POS Pro</span>
           )}
