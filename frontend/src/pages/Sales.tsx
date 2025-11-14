@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { PlusIcon, FunnelIcon } from "@heroicons/react/24/outline";
+import { FunnelIcon } from "@heroicons/react/24/outline"; // Removed PlusIcon as it's now inside the Modal
 import { salesApi } from "../lib/api";
 import { format } from "date-fns";
 import { Sale } from "../types";
+import AddSaleModal from "../components/AddSaleModal"; // Import the new modal component
 
 export const Sales = () => {
-  // Using the imported Sale type for state initialization
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -14,7 +14,7 @@ export const Sales = () => {
     status: "",
   });
 
-  // Fetch sales whenever 'from' or 'to' filters change
+  // Fetch sales runs on initial load and when date filters change
   useEffect(() => {
     fetchSales();
   }, [filters.from, filters.to]);
@@ -23,7 +23,7 @@ export const Sales = () => {
     try {
       setLoading(true);
 
-      // The salesApi.list logic (updated previously) handles calling /sales or /sales/range
+      // salesApi.list now correctly calls /sales or /sales/range
       const apiResponse = await salesApi.list(
         filters.from || undefined,
         filters.to || undefined
@@ -38,7 +38,7 @@ export const Sales = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: Sale["status"]) => {
     const colors = {
       completed: "bg-green-100 text-green-800",
       pending: "bg-yellow-100 text-yellow-800",
@@ -68,13 +68,8 @@ export const Sales = () => {
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          <button
-            type="button"
-            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <PlusIcon className="-ml-1 mr-2 h-5 w-5" />
-            New Sale
-          </button>
+          {/* ⭐ INTEGRATION POINT: Use the new modal component */}
+          <AddSaleModal onAdded={fetchSales} />
         </div>
       </div>
 
@@ -155,7 +150,7 @@ export const Sales = () => {
                   Total
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  SELLER
+                  Cashier
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -191,11 +186,11 @@ export const Sales = () => {
                       {sale.quantity}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {/* Currency updated to KES */}
+                      {/* Currency is KES */}
                       {`KES ${Number(sale.unit_price || 0).toFixed(2)}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {/* Currency updated to KES */}
+                      {/* Currency is KES */}
                       {`KES ${Number(sale.total_price).toFixed(2)}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
