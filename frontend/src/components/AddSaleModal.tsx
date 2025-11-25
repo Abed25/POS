@@ -34,7 +34,13 @@ interface CartItem {
 interface SingleSaleForm {
   product_id: number | "";
   quantity: number;
-  // seller field removed
+}
+
+// Type for data sent to the bulk endpoint
+interface BulkSaleItem {
+  product_id: number;
+  quantity: number;
+  // user_id is handled securely by the backend token
 }
 
 interface Props {
@@ -59,7 +65,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
-  // globalSeller state removed as it is no longer needed
 
   // --- Effects and Handlers ---
 
@@ -97,7 +102,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
     setSelectedProductId("");
   };
 
-  // Handler for Single Sale Mode inputs
   const handleSingleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -109,12 +113,10 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
     }));
   };
 
-  // Handlers for Multi Sale (Cart)
   const handleAddToCart = () => {
     const product = products.find((p) => p.id === selectedProductId);
     if (!product) return;
 
-    // Check if product is already in the cart
     const existingIndex = cart.findIndex(
       (item) => item.product.id === product.id
     );
@@ -178,7 +180,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
       await salesApi.create({
         product_id: singleForm.product_id,
         quantity: singleForm.quantity,
-        // Seller/user_id is handled securely by the backend token
       });
       onAdded();
       setOpen(false);
@@ -190,31 +191,31 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
     }
   };
 
-  // --- SUBMISSION FOR MULTI SALE (PRE-BULK BACKEND) ---
+  // --- SUBMISSION FOR MULTI SALE (OPTIMIZED BULK BACKEND) ---
   const handleMultiSaleSubmit = async () => {
     if (cart.length === 0) {
       alert("The cart is empty.");
       return;
     }
 
+    // 1. Map the cart items to the simple structure the backend expects
+    const salesData: BulkSaleItem[] = cart.map((item) => ({
+      product_id: item.product.id,
+      quantity: item.quantity,
+    }));
+
     try {
       setLoading(true);
 
-      // Temporary loop: Call single sale endpoint for each cart item
-      for (const item of cart) {
-        await salesApi.create({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          // Seller/user_id is handled securely by the backend token
-        });
-      }
+      // ⭐ OPTIMIZED API CALL: Send the entire cart array in one request ⭐
+      await salesApi.createBulk(salesData);
 
       onAdded();
       setOpen(false);
     } catch (err) {
       console.error(err);
       alert(
-        "Failed to complete multi-sale. One or more items failed to submit."
+        "Failed to complete multi-sale. Check the console for server errors."
       );
     } finally {
       setLoading(false);
@@ -383,7 +384,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
 
               {/* Total Display */}
               <Box display="flex" flexDirection="column" gap={2} mt={4}>
-                {/* Cashier/Seller Name field removed */}
                 <Typography variant="h5" align="right" mt={1} color="primary">
                   GRAND TOTAL: KES {totalAmount.toFixed(2)}
                 </Typography>
@@ -443,7 +443,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
                   ".MuiInputBase-input": { fontWeight: "bold", color: "green" },
                 }}
               />
-              {/* Cashier/Seller Name field removed */}
             </Box>
           )}
         </DialogContent>

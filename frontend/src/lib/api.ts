@@ -99,6 +99,11 @@ export const salesApi = {
 
   create: (data: any) =>
     apiRequest("/sales", { method: "POST", body: JSON.stringify(data) }),
+  createBulk: (salesArray: any[]) =>
+    apiRequest("/sales/bulk", {
+      method: "POST",
+      body: JSON.stringify(salesArray),
+    }),
 
   getById: (id: number) => apiRequest(`/sales/${id}`),
 };
