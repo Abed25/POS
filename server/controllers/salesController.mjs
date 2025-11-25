@@ -58,9 +58,30 @@ export const addSale = async (req, res) => {
   }
 };
 
+// In salesController.mjs
+
 export const getAllSales = async (req, res) => {
   try {
-    const sales = await getSales();
+    // 1. Get user details from the secure middleware object
+    const userRole = req.user.role; // Assuming role is attached by middleware
+    const userId = req.user.id; // ID is attached by middleware (from token)
+
+    let sales;
+
+    if (userRole === "admin") {
+      // ADMIN: Fetch ALL sales (call model function without ID)
+      sales = await getSales();
+    } else if (userRole === "cashier") {
+      // CASHIER: Fetch ONLY their sales (call model function with ID)
+      // This uses the updated getSales(userId) you implemented in the model
+      sales = await getSales(userId);
+    } else {
+      // CUSTOMER or unhandled role: No access to the general list
+      return res
+        .status(403)
+        .json({ message: "Role not authorized to view sales list" });
+    }
+
     res.json(sales);
   } catch (error) {
     res
@@ -82,9 +103,13 @@ export const getSingleSale = async (req, res) => {
   }
 };
 
+// In salesController.mjs
+
 export const getSalesInRange = async (req, res) => {
   try {
     const { from, to } = req.query;
+    const userRole = req.user.role;
+    const userId = req.user.id;
 
     if (!from || !to) {
       return res
@@ -92,7 +117,19 @@ export const getSalesInRange = async (req, res) => {
         .json({ message: "Please provide from and to dates" });
     }
 
-    const sales = await getSalesByDateRange(from, to);
+    let sales;
+    if (userRole === "admin") {
+      // ADMIN: Fetch ALL sales in range
+      sales = await getSalesByDateRange(from, to);
+    } else if (userRole === "cashier") {
+      // CASHIER: Fetch ONLY their sales in range
+      // This uses the updated getSalesByDateRange(from, to, userId) model function
+      sales = await getSalesByDateRange(from, to, userId);
+    } else {
+      return res
+        .status(403)
+        .json({ message: "Role not authorized to view sales reports" });
+    }
 
     res.json(sales);
   } catch (error) {

@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FunnelIcon } from "@heroicons/react/24/outline"; // Removed PlusIcon as it's now inside the Modal
+import { FunnelIcon } from "@heroicons/react/24/outline";
 import { salesApi } from "../lib/api";
 import { format } from "date-fns";
 import { Sale } from "../types";
-import AddSaleModal from "../components/AddSaleModal"; // Import the new modal component
+import AddSaleModal from "../components/AddSaleModal";
+import { useAuth } from "../contexts/AuthContext"; // ⭐ Import the useAuth hook
 
 export const Sales = () => {
+  // ⭐ Use the auth hook to get the current user
+  const { user } = useAuth();
+
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -16,14 +20,19 @@ export const Sales = () => {
 
   // Fetch sales runs on initial load and when date filters change
   useEffect(() => {
-    fetchSales();
-  }, [filters.from, filters.to]);
+    // Only attempt to fetch sales if a user is available (prevents errors)
+    if (user) {
+      fetchSales();
+    } else {
+      setLoading(false); // If no user, stop loading state quickly
+    }
+  }, [filters.from, filters.to, user]); // ⭐ Add user dependency to refetch on login/logout
 
   const fetchSales = async () => {
     try {
       setLoading(true);
 
-      // salesApi.list now correctly calls /sales or /sales/range
+      // salesApi.list handles the role filtering automatically based on localStorage
       const apiResponse = await salesApi.list(
         filters.from || undefined,
         filters.to || undefined
@@ -31,6 +40,8 @@ export const Sales = () => {
 
       setSales(apiResponse as Sale[]);
     } catch (error) {
+      // In a real app, you might check if the error is 401 and redirect here too,
+      // but the Axios Interceptor handles that globally now.
       console.error("Failed to fetch sales:", error);
       setSales([]);
     } finally {
@@ -39,6 +50,7 @@ export const Sales = () => {
   };
 
   const getStatusBadge = (status: Sale["status"]) => {
+    // ... (getStatusBadge function remains the same) ...
     const colors = {
       completed: "bg-green-100 text-green-800",
       pending: "bg-yellow-100 text-yellow-800",
@@ -58,6 +70,22 @@ export const Sales = () => {
     );
   };
 
+  // Determine if the user should see the 'Add Sale' button
+  const canAddSale = user && (user.role === "admin" || user.role === "cashier");
+
+  // Optional: Show a message if no user is present (should be blocked by ProtectedRoute)
+  if (!user && !loading) {
+    return (
+      <div className="p-6 text-center text-red-500">
+        Access Denied. Please log in.
+      </div>
+    );
+  }
+
+  // -----------------------------------------------------------
+  // ⭐ Start of Render
+  // -----------------------------------------------------------
+
   return (
     <div>
       <div className="sm:flex sm:items-center sm:justify-between mb-6">
@@ -68,13 +96,16 @@ export const Sales = () => {
           </p>
         </div>
         <div className="mt-4 sm:mt-0">
-          {/* ⭐ INTEGRATION POINT: Use the new modal component */}
-          <AddSaleModal onAdded={fetchSales} />
+          {/* ⭐ CONDITIONAL RENDERING: Only show the button for Admin/Cashier */}
+          {canAddSale && <AddSaleModal onAdded={fetchSales} />}
         </div>
       </div>
 
+      {/* ... (Filters and Table HTML remains the same) ... */}
+
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
+        {/* ... (Filter controls remain the same) ... */}
         <div className="flex items-center space-x-4">
           <FunnelIcon className="h-5 w-5 text-gray-400" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
@@ -161,6 +192,7 @@ export const Sales = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {/* ... (Loading/Empty State remains the same) ... */}
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center">

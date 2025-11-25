@@ -22,28 +22,41 @@ export const createSale = async ({
   };
 };
 
-export const getSales = async () => {
+
+export const getSales = async (userId) => { // <-- Accept optional userId
+  let whereClause = "";
+  const params = [];
+
+  if (userId) { // <-- Conditionally add WHERE clause if userId is provided
+    whereClause = "WHERE s.user_id = ?";
+    params.push(userId);
+  }
+
   const [rows] = await db.query(
     `SELECT 
-    s.id,
-    p.name AS product_name,
-    s.unit_price,
-    s.quantity,
-    s.total_price,
-    u.username AS seller,
-    s.sale_date,     
-    s.receipt_number
-FROM 
-    sales s
-INNER JOIN 
-    products p ON s.product_id = p.id
-INNER JOIN 
-    users u ON s.user_id = u.id
-ORDER BY 
-    s.sale_date DESC`
+        s.id,
+        p.name AS product_name,
+        s.unit_price,
+        s.quantity,
+        s.total_price,
+        u.username AS seller,
+        s.sale_date,    
+        s.receipt_number
+    FROM 
+        sales s
+    INNER JOIN 
+        products p ON s.product_id = p.id
+    INNER JOIN 
+        users u ON s.user_id = u.id
+    ${whereClause} 
+    ORDER BY 
+        s.sale_date DESC`,
+    params // Pass the parameters array
   );
   return rows;
 };
+
+// ... (getSaleById remains the same)
 
 export const getSaleById = async (id) => {
   const [rows] = await db.query(
@@ -69,7 +82,16 @@ WHERE s.id = ?`,
 };
 
 // Get sales by date range
-export const getSalesByDateRange = async (from, to) => {
+// Get sales by date range
+export const getSalesByDateRange = async (from, to, userId) => { // <-- Accept optional userId
+  let whereClause = "WHERE s.sale_date BETWEEN ? AND ?";
+  const params = [from, to];
+
+  if (userId) { // <-- Conditionally add user filter
+    whereClause += " AND s.user_id = ?";
+    params.push(userId);
+  }
+
   const [rows] = await db.query(
     `SELECT 
         s.id,
@@ -86,14 +108,15 @@ export const getSalesByDateRange = async (from, to) => {
         products p ON s.product_id = p.id
     INNER JOIN 
         users u ON s.user_id = u.id
-    WHERE 
-        s.sale_date BETWEEN ? AND ? 
+    ${whereClause}
     ORDER BY 
         s.sale_date ASC`,
-    [from, to]
+    params // Pass the parameters array
   );
   return rows;
 };
+
+// NOTE: You can now remove or deprecate getSalesByUser since getSales now handles it.
 
 // Get sales by cashier (user_id)
 export const getSalesByUser = async (user_id) => {
