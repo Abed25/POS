@@ -1,5 +1,4 @@
-// src/components/AddSaleModal.tsx (Create this new file)
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,43 +9,69 @@ import {
   Box,
   MenuItem,
   CircularProgress,
+  Typography,
+  Switch,
+  FormControlLabel,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
-import { productApi, salesApi } from "../lib/api"; // Ensure productApi is available
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import { productApi, salesApi } from "../lib/api";
 import { Product } from "../types";
 
-interface SaleForm {
+// --- Types for Form Data ---
+interface CartItem {
+  product: Product;
+  quantity: number;
+}
+
+interface SingleSaleForm {
   product_id: number | "";
   quantity: number;
-  seller: string; // Corresponds to the 'seller' field in your backend
+  // seller field removed
 }
 
 interface Props {
-  onAdded: () => void; // Reload sales list after adding
+  onAdded: () => void;
 }
 
 const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<SaleForm>({
+  const [isMultiSaleMode, setIsMultiSaleMode] = useState(false);
+
+  // Single Product State
+  const [singleForm, setSingleForm] = useState<SingleSaleForm>({
     product_id: "",
     quantity: 1,
-    seller: "", // Default seller/cashier
   });
+
+  // Multi Product State (The Cart)
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<number | "">("");
+
+  // Global State
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [productsLoading, setProductsLoading] = useState(true);
+  // globalSeller state removed as it is no longer needed
 
-  // Fetch product list for the dropdown
+  // --- Effects and Handlers ---
+
   useEffect(() => {
     if (open) {
       const fetchProducts = async () => {
         try {
           setProductsLoading(true);
-          // Assuming productApi.list() fetches all products for selection
-          const productList = await productApi.getAll();
+          const productList = (await productApi.getAll()) as Product[];
           setProducts(productList);
         } catch (error) {
           console.error("Failed to fetch products:", error);
-          // Handle error display
         } finally {
           setProductsLoading(false);
         }
@@ -55,42 +80,106 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
     }
   }, [open]);
 
-  const handleChange = (
+  const handleOpen = () => {
+    setOpen(true);
+    // Reset states on open
+    setSingleForm({ product_id: "", quantity: 1 });
+    setCart([]);
+    setSelectedProductId("");
+    setIsMultiSaleMode(false);
+  };
+
+  const handleModeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsMultiSaleMode(event.target.checked);
+    // Clear forms when switching modes
+    setSingleForm({ product_id: "", quantity: 1 });
+    setCart([]);
+    setSelectedProductId("");
+  };
+
+  // Handler for Single Sale Mode inputs
+  const handleSingleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setForm((prev) => ({
+    setSingleForm((prev) => ({
       ...prev,
       [name]:
         name === "quantity" || name === "product_id" ? Number(value) : value,
     }));
   };
 
-  const handleOpen = () => {
-    setOpen(true);
-    // Reset form on open
-    setForm({ product_id: "", quantity: 1, seller: "" });
+  // Handlers for Multi Sale (Cart)
+  const handleAddToCart = () => {
+    const product = products.find((p) => p.id === selectedProductId);
+    if (!product) return;
+
+    // Check if product is already in the cart
+    const existingIndex = cart.findIndex(
+      (item) => item.product.id === product.id
+    );
+
+    if (existingIndex !== -1) {
+      const updatedCart = [...cart];
+      if (updatedCart[existingIndex].quantity < product.stock) {
+        updatedCart[existingIndex].quantity += 1;
+        setCart(updatedCart);
+      }
+    } else {
+      if (product.stock > 0) {
+        setCart((prev) => [...prev, { product, quantity: 1 }]);
+      }
+    }
+    setSelectedProductId("");
   };
 
-  const handleSubmit = async () => {
-    if (!form.product_id || form.quantity <= 0) {
+  const handleCartQuantityChange = (productId: number, newQuantity: number) => {
+    if (newQuantity < 1) return;
+
+    setCart((prev) =>
+      prev.map((item) => {
+        if (item.product.id === productId) {
+          const maxQuantity = item.product.stock;
+          const safeQuantity = Math.min(newQuantity, maxQuantity);
+          return { ...item, quantity: safeQuantity };
+        }
+        return item;
+      })
+    );
+  };
+
+  const handleRemoveFromCart = (productId: number) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  // --- Submission Logic ---
+
+  const totalAmount = useMemo(() => {
+    if (isMultiSaleMode) {
+      return cart.reduce(
+        (sum, item) => sum + Number(item.product.price) * item.quantity,
+        0
+      );
+    }
+    const product = products.find((p) => p.id === singleForm.product_id);
+    return product ? Number(product.price) * singleForm.quantity : 0;
+  }, [isMultiSaleMode, cart, singleForm, products]);
+
+  const selectedProduct = products.find((p) => p.id === singleForm.product_id);
+
+  // --- SUBMISSION FOR SINGLE SALE ---
+  const handleSingleSaleSubmit = async () => {
+    if (!singleForm.product_id || singleForm.quantity <= 0) {
       alert("Please select a product and enter a valid quantity.");
       return;
     }
-
-    // You only send product_id, quantity, and seller.
-    // The backend is expected to calculate total_price and update stock.
     try {
       setLoading(true);
-
-      // The salesApi.create method expects the data for the new sale.
       await salesApi.create({
-        product_id: form.product_id,
-        quantity: form.quantity,
-        seller: form.seller,
-        // Optional: Add other fields if required by your backend
+        product_id: singleForm.product_id,
+        quantity: singleForm.quantity,
+        // Seller/user_id is handled securely by the backend token
       });
-
       onAdded();
       setOpen(false);
     } catch (err) {
@@ -101,8 +190,36 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
     }
   };
 
-  // Find the selected product to display its unit price (in KES)
-  const selectedProduct = products.find((p) => p.id === form.product_id);
+  // --- SUBMISSION FOR MULTI SALE (PRE-BULK BACKEND) ---
+  const handleMultiSaleSubmit = async () => {
+    if (cart.length === 0) {
+      alert("The cart is empty.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Temporary loop: Call single sale endpoint for each cart item
+      for (const item of cart) {
+        await salesApi.create({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          // Seller/user_id is handled securely by the backend token
+        });
+      }
+
+      onAdded();
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert(
+        "Failed to complete multi-sale. One or more items failed to submit."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <>
@@ -110,7 +227,6 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
         variant="contained"
         color="primary"
         onClick={handleOpen}
-        // Tailwind equivalent: bg-blue-600 hover:bg-blue-700
         sx={{
           backgroundColor: "#2563EB",
           "&:hover": { backgroundColor: "#1D4ED8" },
@@ -122,82 +238,214 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        maxWidth="sm"
+        maxWidth={isMultiSaleMode ? "md" : "sm"}
         fullWidth
       >
-        <DialogTitle>Add New Sale</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={3} mt={1}>
-            {/* Product Dropdown */}
-            {productsLoading ? (
-              <Box display="flex" justifyContent="center" py={2}>
-                <CircularProgress size={24} />
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            Add New Sale
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={isMultiSaleMode}
+                  onChange={handleModeChange}
+                  name="saleMode"
+                  color="primary"
+                />
+              }
+              label={
+                isMultiSaleMode ? "Multi-Product (Cart)" : "Single Product"
+              }
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {productsLoading ? (
+            <Box display="flex" justifyContent="center" py={5}>
+              <CircularProgress />
+              <Typography ml={2}>Loading products...</Typography>
+            </Box>
+          ) : isMultiSaleMode ? (
+            // --- Multi-Sale UI (Cart View) ---
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Add Items to Cart
+              </Typography>
+
+              <Box display="flex" gap={2} mb={3}>
+                <TextField
+                  select
+                  label="Select Product"
+                  value={selectedProductId}
+                  onChange={(e) => setSelectedProductId(Number(e.target.value))}
+                  fullWidth
+                >
+                  {products.map((product) => (
+                    <MenuItem
+                      key={product.id}
+                      value={product.id}
+                      disabled={product.stock === 0}
+                    >
+                      {product.name} (Stock: {product.stock}) - KES{" "}
+                      {Number(product.price).toFixed(2)}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <IconButton
+                  color="primary"
+                  onClick={handleAddToCart}
+                  disabled={
+                    !selectedProductId ||
+                    products.find((p) => p.id === selectedProductId)?.stock ===
+                      0
+                  }
+                  size="large"
+                >
+                  <AddIcon />
+                </IconButton>
               </Box>
-            ) : (
+
+              <Typography variant="h6" gutterBottom>
+                Current Cart ({cart.length} items)
+              </Typography>
+
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Product</TableCell>
+                      <TableCell align="center">Unit Price</TableCell>
+                      <TableCell align="center" sx={{ width: 150 }}>
+                        Quantity
+                      </TableCell>
+                      <TableCell align="right">Subtotal</TableCell>
+                      <TableCell align="right">Action</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {cart.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          Cart is empty.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      cart.map((item) => (
+                        <TableRow key={item.product.id}>
+                          <TableCell>{item.product.name}</TableCell>
+                          <TableCell align="center">
+                            KES {Number(item.product.price).toFixed(2)}
+                          </TableCell>
+                          <TableCell align="center">
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={item.quantity}
+                              onChange={(e) =>
+                                handleCartQuantityChange(
+                                  item.product.id,
+                                  Number(e.target.value)
+                                )
+                              }
+                              inputProps={{
+                                min: 1,
+                                max: item.product.stock,
+                              }}
+                              sx={{ width: 80 }}
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            KES{" "}
+                            {(
+                              Number(item.product.price) * item.quantity
+                            ).toFixed(2)}
+                          </TableCell>
+                          <TableCell align="right">
+                            <IconButton
+                              color="error"
+                              onClick={() =>
+                                handleRemoveFromCart(item.product.id)
+                              }
+                            >
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Total Display */}
+              <Box display="flex" flexDirection="column" gap={2} mt={4}>
+                {/* Cashier/Seller Name field removed */}
+                <Typography variant="h5" align="right" mt={1} color="primary">
+                  GRAND TOTAL: KES {totalAmount.toFixed(2)}
+                </Typography>
+              </Box>
+            </Box>
+          ) : (
+            // --- Single-Sale UI ---
+            <Box display="flex" flexDirection="column" gap={3} mt={1}>
               <TextField
                 select
                 label="Product *"
                 name="product_id"
-                value={form.product_id}
-                onChange={handleChange}
+                value={singleForm.product_id}
+                onChange={handleSingleFormChange}
                 fullWidth
                 required
               >
                 {products.map((product) => (
-                  <MenuItem key={product.id} value={product.id}>
+                  <MenuItem
+                    key={product.id}
+                    value={product.id}
+                    disabled={product.stock === 0}
+                  >
                     {product.name} (Stock: {product.stock})
                   </MenuItem>
                 ))}
               </TextField>
-            )}
 
-            {/* Price Display */}
-            {selectedProduct && (
+              {selectedProduct && (
+                <TextField
+                  label="Unit Price (KES)"
+                  value={`KES ${Number(selectedProduct.price).toFixed(2)}`}
+                  InputProps={{ readOnly: true }}
+                  fullWidth
+                  sx={{ pointerEvents: "none" }}
+                />
+              )}
+
               <TextField
-                label="Unit Price (KES)"
-                value={`KES ${Number(selectedProduct.price).toFixed(2)}`}
+                label="Quantity *"
+                name="quantity"
+                type="number"
+                value={singleForm.quantity}
+                onChange={handleSingleFormChange}
+                fullWidth
+                required
+                inputProps={{ min: 1, max: selectedProduct?.stock || 9999 }}
+              />
+
+              <TextField
+                label="Total Amount (KES)"
+                value={`KES ${totalAmount.toFixed(2)}`}
                 InputProps={{ readOnly: true }}
                 fullWidth
-                sx={{ pointerEvents: "none" }}
+                sx={{
+                  fontWeight: "bold",
+                  ".MuiInputBase-input": { fontWeight: "bold", color: "green" },
+                }}
               />
-            )}
-
-            {/* Quantity */}
-            <TextField
-              label="Quantity *"
-              name="quantity"
-              type="number"
-              value={form.quantity}
-              onChange={handleChange}
-              fullWidth
-              required
-              inputProps={{ min: 1 }}
-            />
-
-            {/* Calculated Total */}
-            <TextField
-              label="Total Amount (KES)"
-              value={`KES ${(selectedProduct
-                ? selectedProduct.price * form.quantity
-                : 0
-              ).toFixed(2)}`}
-              InputProps={{ readOnly: true }}
-              fullWidth
-              sx={{
-                fontWeight: "bold",
-                ".MuiInputBase-input": { fontWeight: "bold", color: "green" },
-              }}
-            />
-
-            {/* Seller/Cashier Name */}
-            <TextField
-              label="Cashier/Seller Name"
-              name="seller"
-              value={form.seller}
-              onChange={handleChange}
-              fullWidth
-            />
-          </Box>
+              {/* Cashier/Seller Name field removed */}
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)} disabled={loading}>
@@ -206,8 +454,10 @@ const AddSaleModal: React.FC<Props> = ({ onAdded }) => {
           <Button
             variant="contained"
             color="success"
-            onClick={handleSubmit}
-            disabled={loading}
+            onClick={
+              isMultiSaleMode ? handleMultiSaleSubmit : handleSingleSaleSubmit
+            }
+            disabled={loading || (isMultiSaleMode && cart.length === 0)}
           >
             {loading ? "Processing..." : "Complete Sale"}
           </Button>
