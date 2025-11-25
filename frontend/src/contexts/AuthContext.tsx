@@ -1,6 +1,10 @@
-import React, { createContext, useContext, useEffect, useReducer } from "react";
+import React, { createContext, useContext, useEffect, useReducer, useRef } from "react";
 import type { User, AuthState } from "../types";
 import axios from "axios";
+
+// ----------------------------------------------------------------------
+// Types & Interfaces
+// ----------------------------------------------------------------------
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string) => Promise<void>;
@@ -12,6 +16,10 @@ type AuthAction =
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "LOGIN_SUCCESS"; payload: { user: User; token: string } }
   | { type: "LOGOUT" };
+
+// ----------------------------------------------------------------------
+// Reducer
+// ----------------------------------------------------------------------
 
 const authReducer = (
   state: AuthState & { loading: boolean },
@@ -45,6 +53,10 @@ const authReducer = (
   }
 };
 
+// ----------------------------------------------------------------------
+// Context & Provider
+// ----------------------------------------------------------------------
+
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
@@ -57,10 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loading: true,
   });
 
-  // Restore session on mount
+  // 1. Restore Session on Mount
   useEffect(() => {
     const storedToken = localStorage.getItem("auth_token");
     const storedUser = localStorage.getItem("user");
+
     if (storedToken && storedUser) {
       try {
         const user: User = JSON.parse(storedUser);
@@ -69,6 +82,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           payload: { user, token: storedToken },
         });
       } catch {
+        // Corrupted data in local storage
         dispatch({ type: "LOGOUT" });
       }
     } else {
@@ -76,7 +90,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  // ✅ Corrected login function
+  // 2. Interceptor for Expired Tokens (401 Handling)
+  useEffect(() => {
+    const interceptorId = axios.interceptors.response.use(
+      (response) => response, // Return successful responses as is
+      (error) => {
+        // Check for 401 Unauthorized (Token Expired)
+        if (error.response && error.response.status === 401) {
+          console.warn("Token expired or invalid. Logging out...");
+          
+          dispatch({ type: "LOGOUT" });
+
+          // Prevent infinite reload loop if already on login page
+          if (!window.location.pathname.includes("/login")) {
+             window.location.href = "/login";
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    // Cleanup: Remove interceptor when component unmounts
+    return () => {
+      axios.interceptors.response.eject(interceptorId);
+    };
+  }, []);
+
+  // 3. Login Function
   const login = async (username: string, password: string): Promise<void> => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
@@ -86,11 +126,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         { headers: { "Content-Type": "application/json" } }
       );
 
-      // Build a minimal User object to satisfy the context
+      // Build User object (adjust fields based on your actual API response)
       const user: User = {
-        id: 0, // backend doesn't send an id, placeholder is fine
+        id: 0, // Placeholder if ID is not returned
         username,
-        email: "",
+        email: "", // Placeholder if not returned
         role: data.role as "admin" | "cashier",
         createdAt: new Date().toISOString(),
       };
@@ -106,8 +146,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // 4. Logout Function
   const logout = (): void => {
     dispatch({ type: "LOGOUT" });
+    if (!window.location.pathname.includes("/login")) {
+      window.location.href = "/login";
+    }
   };
 
   return (
@@ -116,6 +160,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     </AuthContext.Provider>
   );
 };
+
+// ----------------------------------------------------------------------
+// Hook
+// ----------------------------------------------------------------------
 
 export const useAuth = (): AuthContextType => {
   const ctx = useContext(AuthContext);
