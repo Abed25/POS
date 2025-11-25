@@ -144,3 +144,42 @@ export const getSalesByUser = async (user_id) => {
   );
   return rows;
 };
+
+
+// salesModel.mjs
+
+
+
+// Creates multiple sales records in a single database transaction.
+// @param {Array<Object>} salesArray - Array of sale objects [{product_id, unit_price, quantity, total_price, user_id}, ...]
+// @returns {Object} Result from the database insertion.
+
+export const createBulkSales = async (salesArray) => {
+  // 1. Build the complex SQL string and the flat array of values
+  const queryParts = [];
+  const queryValues = [];
+
+  for (const sale of salesArray) {
+    // Add placeholders for one row (5 values)
+    queryParts.push("(?, ?, ?, ?, ?)");
+    // Flatten the values into a single array for the MySQL driver
+    queryValues.push(
+      sale.product_id,
+      sale.unit_price,
+      sale.quantity,
+      sale.total_price,
+      sale.user_id
+    );
+  }
+
+  // 2. Construct the final query with all rows
+  const sql = `
+    INSERT INTO sales (product_id, unit_price, quantity, total_price, user_id) 
+    VALUES ${queryParts.join(", ")}
+  `;
+
+  // 3. Execute the single query
+  const [result] = await db.query(sql, queryValues);
+
+  return result;
+};

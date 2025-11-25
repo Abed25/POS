@@ -4,6 +4,7 @@ import {
   getSaleById,
   getSalesByDateRange,
   getSalesByUser,
+  createBulkSales,
 } from "../models/salesModel.mjs";
 import { updateProductStock, getProductById } from "../models/productModel.mjs";
 
@@ -149,5 +150,88 @@ export const getMySales = async (req, res) => {
     res
       .status(500)
       .json({ message: "Failed to fetch sales", error: error.message });
+  }
+};
+
+// NEW CONTROLLER FUNCTION
+export const addBulkSale = async (req, res) => {
+  try {
+    // Expecting an array of simple sales objects: [{product_id, quantity}, ...]
+    const salesData = req.body;
+    // Securely get the user ID from the token
+    const userId = req.user.id;
+
+    if (!Array.isArray(salesData) || salesData.length === 0) {
+      return res
+        .status(400)
+        .json({ message: "Invalid or empty sales array provided." });
+    }
+
+    const salesForDB = [];
+    const stockUpdates = [];
+    let totalPriceSum = 0;
+
+    for (const sale of salesData) {
+      const { product_id, quantity } = sale;
+
+      if (!product_id || quantity <= 0) {
+        return res
+          .status(400)
+          .json({ message: "Invalid product_id or quantity in cart." });
+      }
+
+      // 1. Find and validate product/stock for each item
+      const product = await getProductById(product_id);
+      if (!product) {
+        return res
+          .status(404)
+          .json({ message: `Product ID ${product_id} not found.` });
+      }
+      if (product.stock < quantity) {
+        return res
+          .status(400)
+          .json({
+            message: `Not enough stock for ${product.name}. Available: ${product.stock}`,
+          });
+      }
+
+      // 2. Calculate details and build DB entry
+      const unit_price = product.price;
+      const total_price = unit_price * quantity;
+      totalPriceSum += total_price;
+
+      // Prepare the fully detailed object for the model function
+      salesForDB.push({
+        product_id,
+        unit_price,
+        quantity,
+        total_price,
+        user_id: userId, // Enforce logged-in user ID
+      });
+
+      // 3. Prepare stock updates
+      stockUpdates.push({ product_id, quantity });
+    }
+
+    // 4. Insert all sales in one go (Bulk Operation)
+    const result = await createBulkSales(salesForDB);
+
+    // 5. Reduce stock for all products
+    // NOTE: This should ideally be a bulk operation too, but we use the existing function.
+    for (const { product_id, quantity } of stockUpdates) {
+      await updateProductStock(product_id, quantity);
+    }
+
+    res.status(201).json({
+      message: `${
+        salesData.length
+      } items sold successfully (Total KES ${totalPriceSum.toFixed(2)})`,
+      rowsAffected: result.affectedRows,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to record bulk sales",
+      error: error.message,
+    });
   }
 };

@@ -4,11 +4,14 @@ import {
   getAllSales, // <--- This function will now handle both "all" and "filtered"
   getSingleSale,
   getSalesInRange,
-  // getMySales, <--- REMOVED
+  addBulkSale,
 } from "../controllers/salesController.mjs";
 import { protect, authorize } from "../middleware/authMiddleware.mjs";
 
 const router = express.Router();
+
+// 🚀 NEW BULK ROUTE 🚀
+router.post("/bulk", protect, authorize("cashier", "admin"), addBulkSale);
 
 router.post("/", protect, authorize("cashier", "admin"), addSale); // Record a new sale
 
