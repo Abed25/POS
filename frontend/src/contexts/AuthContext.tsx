@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         id: 0, // Placeholder if ID is not returned
         username,
         email: "", // Placeholder if not returned
-        role: data.role as "admin" | "cashier",
+        role: data.role as "admin" | "cashier" | "customer",
         createdAt: new Date().toISOString(),
       };
 

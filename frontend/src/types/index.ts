@@ -2,7 +2,7 @@
 export interface User {
   id: number; // MySQL INT
   username: string;
-  role: "admin" | "cashier"; // matches ENUM in DB
+  role: "admin" | "cashier" | "customer"; // matches ENUM in DB**
   createdAt: string; // ISO date string
   email?: string; // optional (not required in backend)
 }
