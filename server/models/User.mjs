@@ -66,3 +66,23 @@ export const deleteUser = async (id) => {
   await db.query("DELETE FROM users WHERE id = ?", [id]);
   return { message: "User deleted" };
 };
+
+// models/User.mjs (Add this function)
+// ... (Your existing model imports and functions like findUserByUsername)
+
+// Function to update the user's business_id after the business record is created.
+export const updateUserBusinessId = async (userId, businessId) => {
+  // CRITICAL: Ensure businessId is not zero or null before updating,
+  // although it should be correct if createBusiness worked.
+  if (!businessId) {
+    throw new Error("Cannot update user with invalid business ID.");
+  }
+
+  // Use the id column to target the correct user
+  await db.query("UPDATE users SET business_id = ? WHERE id = ?", [
+    businessId,
+    userId,
+  ]);
+};
+
+// ... (Rest of User.mjs)
