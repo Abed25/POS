@@ -15,12 +15,20 @@ export const createBusiness = async (name, ownerId) => {
   return result.insertId;
 };
 
+export const findBusinessByName = async (businessName) => {
+  const [rows] = await db.query(
+    "SELECT id FROM businesses WHERE business_name = ?",
+    [businessName]
+  );
+  return rows[0]; // Returns the business object or undefined/null
+};
+
 // /**
 //  * Finds a business ID and details based on its unique name (used for login scoping).
 //  * @param {string} name - The name of the business.
 //  * @returns {object|null} Business object containing id (as business_id), name, owner_id, etc.
 //  */
-export const findBusinessByName = async (name) => {
+export const searchBusinessByName = async (name) => {
   const [rows] = await db.query(
     "SELECT id AS business_id, name, owner_id, created_at FROM businesses WHERE name = ?",
     [name]
