@@ -1,14 +1,19 @@
 import db from "../config/db.mjs";
 import bcrypt from "bcryptjs";
 
-export async function createUser(username, hashedPassword, role) {
+// --- CORE REGISTRATION FUNCTIONS (Pre-Auth) ---
+
+// Create a new user (used in the registration process)
+export async function createUser(username, hashedPassword, role, businessId) {
+  // 🔑 Added businessId
   const [result] = await db.execute(
-    "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-    [username, hashedPassword, role]
+    "INSERT INTO users (username, password, role, business_id) VALUES (?, ?, ?, ?)", // 🔑 Insert business_id
+    [username, hashedPassword, role, businessId]
   );
   return result.insertId;
 }
 
+// Find user by username (used during login, before business_id is known)
 export async function findUserByUsername(username) {
   const [rows] = await db.execute("SELECT * FROM users WHERE username = ?", [
     username,
@@ -16,27 +21,50 @@ export async function findUserByUsername(username) {
   return rows[0];
 }
 
-// Get all users
-export const getAllUsers = async () => {
+// Function to update the user's business_id after the business record is created.
+export const updateUserBusinessId = async (userId, businessId) => {
+  if (!businessId) {
+    throw new Error("Cannot update user with invalid business ID.");
+  } // This remains scoped only by userId as it is part of the initial registration sequence.
+  await db.query("UPDATE users SET business_id = ? WHERE id = ?", [
+    businessId,
+    userId,
+  ]);
+};
+
+// --- TENANT-SCOPED CRUD OPERATIONS ---
+
+// Get all users FOR A SPECIFIC BUSINESS
+export const getAllUsers = async (business_id) => {
+  // 🔑 Added business_id parameter
   const [rows] = await db.query(
-    "SELECT id, username, role, created_at FROM users ORDER BY created_at DESC"
+    // Filter by business_id
+    "SELECT id, username, role, business_id, created_at FROM users WHERE business_id = ? ORDER BY created_at DESC",
+    [business_id]
   );
   return rows;
 };
 
-// Get one user
-export const getUserById = async (id) => {
+// Get one user BY ID AND BUSINESS ID
+export const getUserById = async (id, business_id) => {
+  // 🔑 Added business_id parameter
   const [rows] = await db.query(
-    "SELECT id, username, role, created_at FROM users WHERE id = ?",
-    [id]
+    // Filter by BOTH ID and business_id
+    "SELECT id, username, role, business_id, created_at FROM users WHERE id = ? AND business_id = ?",
+    [id, business_id]
   );
   return rows[0];
 };
 
-// Update user
-export const updateUser = async (id, { username, password, role }) => {
+// Update user BY ID AND BUSINESS ID
+export const updateUser = async (
+  id,
+  { username, password, role },
+  business_id
+) => {
+  // 🔑 Added business_id parameter
   let query = "UPDATE users SET ";
-  const values = [];
+  const values = []; // --- Build dynamic update fields ---
 
   if (username) {
     query += "username = ?, ";
@@ -51,38 +79,31 @@ export const updateUser = async (id, { username, password, role }) => {
     query += "role = ?, ";
     values.push(role);
   }
+  if (values.length === 0) {
+    // No fields to update
+    return getUserById(id, business_id);
+  } // remove last comma
 
-  // remove last comma
-  query = query.slice(0, -2);
-  query += " WHERE id = ?";
-  values.push(id);
+  query = query.slice(0, -2); // CRITICAL: Filter by BOTH ID and business_id
+  query += " WHERE id = ? AND business_id = ?";
+  values.push(id, business_id); // 🔑 Append both IDs to the values array
 
-  await db.query(query, values);
-  return getUserById(id);
+  await db.query(query, values); // Return the updated user, scoped by business_id
+  return getUserById(id, business_id);
 };
 
-// Delete user
-export const deleteUser = async (id) => {
-  await db.query("DELETE FROM users WHERE id = ?", [id]);
-  return { message: "User deleted" };
-};
+// Delete user BY ID AND BUSINESS ID
+export const deleteUser = async (id, business_id) => {
+  // 🔑 Added business_id parameter
+  // CRITICAL: Filter by BOTH ID and business_id
+  const [result] = await db.query(
+    "DELETE FROM users WHERE id = ? AND business_id = ?",
+    [id, business_id]
+  );
 
-// models/User.mjs (Add this function)
-// ... (Your existing model imports and functions like findUserByUsername)
-
-// Function to update the user's business_id after the business record is created.
-export const updateUserBusinessId = async (userId, businessId) => {
-  // CRITICAL: Ensure businessId is not zero or null before updating,
-  // although it should be correct if createBusiness worked.
-  if (!businessId) {
-    throw new Error("Cannot update user with invalid business ID.");
+  if (result.affectedRows === 0) {
+    throw new Error("User not found or access denied.");
   }
 
-  // Use the id column to target the correct user
-  await db.query("UPDATE users SET business_id = ? WHERE id = ?", [
-    businessId,
-    userId,
-  ]);
+  return { message: "User deleted" };
 };
-
-// ... (Rest of User.mjs)
