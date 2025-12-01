@@ -5,37 +5,51 @@ import {
   updateUserBusinessId,
 } from "../models/User.mjs";
 // Import the new business model function
-import { createBusiness } from "../models/businessModel.mjs";
+import {
+  createBusiness,
+  findBusinessByName,
+} from "../models/businessModel.mjs";
 import { generateToken } from "../utils/generateToken.mjs";
 
 // 1. REGISTER: Create a new Business/Tenant and assign the user to it
 export async function register(req, res) {
   try {
-    // You may want to add 'businessName' to the registration request body
+    // Get all required inputs
     const { username, password, role, businessName } = req.body;
+
+    // --- CHECK 1: Validate Required Inputs ---
+    if (!username || !password || !businessName) {
+      return res.status(400).json({
+        message: "Username, password, and business name are required.",
+      });
+    } // --- CHECK 2: User Availability ---
 
     const existingUser = await findUserByUsername(username);
     if (existingUser)
       return res.status(400).json({ message: "User already exists" });
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // --- CHECK 3: Business Name Availability 🔑 ---
+    const existingBusiness = await findBusinessByName(businessName);
+    if (existingBusiness)
+      return res.status(400).json({
+        message: `The business name '${businessName}' is already taken.`,
+      });
 
-    // 🔑 PASS newBusinessId to createUser
-    // This user is now the admin of the new tenant (business)
+    const hashedPassword = await bcrypt.hash(password, 10); // --- STEP 1: Create Initial User Record with NULL business_id ---
+
     const userId = await createUser(
       username,
       hashedPassword,
       role || "admin",
-      null // Pass NULL or 0 here, assuming model handles it.
-    );
-    // --- STEP 2: Create Business Record, using the new userId as the owner_id ---
-    const newBusinessId = await createBusiness(
-      businessName || `Business-${username}`,
-      userId
-    );
+      null
+    ); // --- STEP 2: Create Business Record, using the actual businessName and new userId ---
 
-    // --- STEP 3: Update the User with the correct, newly created business_id ---
-    await updateUserBusinessId(userId, newBusinessId); // You must implement this model function
+    const newBusinessId = await createBusiness(
+      businessName, // Use the validated name
+      userId
+    ); // --- STEP 3: Update the User with the correct, newly created business_id ---
+
+    await updateUserBusinessId(userId, newBusinessId);
 
     res.status(201).json({
       message: "Tenant and Admin user registered",
