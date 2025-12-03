@@ -3,7 +3,7 @@ import { FunnelIcon } from "@heroicons/react/24/outline";
 import { salesApi } from "../lib/api";
 import { format } from "date-fns";
 import { Sale } from "../types";
-import AddSaleModal from "../components/AddSaleModal";
+import AddSaleModal from "../components/Sales/AddSaleModal";
 import { useAuth } from "../contexts/AuthContext"; // ⭐ Import the useAuth hook
 
 export const Sales = () => {
