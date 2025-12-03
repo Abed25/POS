@@ -98,6 +98,25 @@ export const userApi = {
   remove: (id: number) => apiRequest(`/users/${id}`, { method: "DELETE" }),
 };
 
+/* ---------- Business ---------- */
+export const businessApi = {
+  // GET /api/businesses/current - Get tenant's own details
+  getMyDetails: () => apiRequest("/business/current"),
+
+  // PUT /api/businesses/current - Update tenant's own details
+  updateMyDetails: (data: any) =>
+    apiRequest("/businesses/current", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  // GET /api/businesses - List all businesses (Superadmin)
+  listAll: () => apiRequest("/businesses"),
+
+  // GET /api/businesses/:id - Get specific business details (Superadmin)
+  getDetailsById: (id: number) => apiRequest(`/businesses/${id}`),
+};
+
 /* ---------- SALES ---------- */
 export const salesApi = {
   list: (from?: string, to?: string) => {
