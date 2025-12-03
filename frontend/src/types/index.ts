@@ -2,7 +2,8 @@
 export interface User {
   id: number; // MySQL INT
   username: string;
-  role: "admin" | "cashier" | "customer"; // matches ENUM in DB**
+  role: "admin" | "cashier" | "customer"; // matches ENUM in DB** // 🔑 NEW: Include business_id for multi-tenancy context
+  business_id: number;
   createdAt: string; // ISO date string
   email?: string; // optional (not required in backend)
 }
