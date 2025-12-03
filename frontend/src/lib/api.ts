@@ -72,6 +72,32 @@ export const productApi = {
   remove: (id: number) => apiRequest(`/products/${id}`, { method: "DELETE" }),
 };
 
+/* ---------- USERS (NEW) 🔑 ---------- */
+export const userApi = {
+  // GET /api/users
+  getAll: () => apiRequest("/users"),
+
+  // GET /api/users/:id
+  getById: (id: number) => apiRequest(`/users/${id}`),
+
+  // POST /api/users - Used by Admin to add Cashier/Customer
+  add: (data: { username: string; password: string; role: string }) =>
+    apiRequest("/users", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // PATCH /api/users/:id
+  update: (id: number, data: any) =>
+    apiRequest(`/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // DELETE /api/users/:id
+  remove: (id: number) => apiRequest(`/users/${id}`, { method: "DELETE" }),
+};
+
 /* ---------- SALES ---------- */
 export const salesApi = {
   list: (from?: string, to?: string) => {
@@ -90,10 +116,8 @@ export const salesApi = {
     } else {
       // 2. If no filters are set, use the general endpoint to get ALL sales
       url = "/sales";
-    }
+    } // Construct the final request URL // The params.toString() will be empty if url is /sales, or contain dates if url is /sales/range
 
-    // Construct the final request URL
-    // The params.toString() will be empty if url is /sales, or contain dates if url is /sales/range
     return apiRequest(`${url}?${params.toString()}`);
   },
 
