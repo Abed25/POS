@@ -15,6 +15,7 @@ import { Sales } from "./pages/Sales";
 import { Inventory } from "./pages/Inventory";
 import Test from "./pages/Test";
 import UserProducts from "./pages/userProducts.tsx";
+import UserManagement from "./pages/userManagement.tsx";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -110,14 +111,7 @@ const AppRoutes: React.FC = () => {
         path="/users"
         element={
           <ProtectedRoute>
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-900">
-                User Management
-              </h2>
-              <p className="mt-2 text-gray-600">
-                User management functionality coming soon...
-              </p>
-            </div>
+            <UserManagement />
           </ProtectedRoute>
         }
       />
