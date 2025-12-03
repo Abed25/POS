@@ -18,7 +18,13 @@ const router = express.Router();
  * GET /api/businesses/current
  * Access: Tenant Admin/User
  */
-router.route("/current").get(protect, getMyBusinessDetails);
+router
+  .route("/current")
+  .get(
+    protect,
+    authorize("admin", "cashier", "customer"),
+    getMyBusinessDetails
+  );
 
 /**
  * PUT /api/businesses/current
