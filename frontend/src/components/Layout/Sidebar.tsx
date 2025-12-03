@@ -31,6 +31,12 @@ const navigation = [
     icon: CubeIcon,
     roles: ["admin", "cashier"],
   },
+  {
+    name: "products",
+    href: "/products",
+    icon: CubeIcon,
+    roles: ["admin", "cashier", "customer"],
+  },
 
   // {
   //   name: "Reports",
@@ -38,15 +44,8 @@ const navigation = [
   //   icon: DocumentChartBarIcon,
   //   roles: ["admin"],
   // },
-  // { name: "Users", href: "/users", icon: UsersIcon, roles: ["admin"] },
+  { name: "Users", href: "/users", icon: UsersIcon, roles: ["admin"] },
   // { name: "Settings", href: "/settings", icon: CogIcon, roles: ["admin"] },
-
-  {
-    name: "products",
-    href: "/products",
-    icon: CubeIcon,
-    roles: ["admin", "cashier", "customer"],
-  },
 ];
 
 export const Sidebar: React.FC = () => {
