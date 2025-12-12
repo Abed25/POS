@@ -26,6 +26,7 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
     cost_price: 0,
     stock: 0,
     max_stock: 0,
+    min_stock: 0,
     category: "",
     supplier: "",
   });
@@ -52,6 +53,7 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
         cost_price: 0,
         stock: 0,
         max_stock: 0,
+        min_stock: 0,
         category: "",
         supplier: "",
       });
@@ -123,10 +125,19 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
               required
             />
             <TextField
-              label="Maximum stock *"
+              label="Maximum stock"
               name="max_stock"
               type="number"
               value={form.max_stock}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Minimum stock"
+              name="min_stock"
+              type="number"
+              value={form.min_stock}
               onChange={handleChange}
               fullWidth
               required

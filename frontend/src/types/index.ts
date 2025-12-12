@@ -21,6 +21,7 @@ export interface Product {
   created_at: string; // timestamp -> string
   updated_at: string; // timestamp -> string
   max_stock?: number;
+  min_stock?: number;
   supplier?: string | null;
 }
 

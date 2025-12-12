@@ -61,6 +61,7 @@ export const addProduct = async (req, res) => {
       cost_price,
       stock,
       max_stock,
+      min_stock,
       category,
       supplier,
     } = req.body;
@@ -79,6 +80,7 @@ export const addProduct = async (req, res) => {
         cost_price,
         stock,
         max_stock,
+        min_stock,
         category,
         supplier,
       },
@@ -107,6 +109,7 @@ export const editProduct = async (req, res) => {
       cost_price,
       stock,
       max_stock,
+      min_stock,
       category,
       supplier,
     } = req.body; // Pass the product ID, the update data, and the tenant ID for scoping
@@ -120,6 +123,7 @@ export const editProduct = async (req, res) => {
         cost_price,
         stock,
         max_stock,
+        min_stock,
         category,
         supplier,
       },

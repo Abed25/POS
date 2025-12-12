@@ -33,6 +33,7 @@ const EditProductModal: React.FC<Props> = ({
     cost_price: 0,
     stock: 0,
     max_stock: 0,
+    min_stock: 0,
     category: "",
     supplier: "",
   });
@@ -47,6 +48,7 @@ const EditProductModal: React.FC<Props> = ({
         cost_price: product.cost_price || 0,
         stock: product.stock || 0,
         max_stock: product.max_stock || 0,
+        min_stock: product.min_stock || 0,
         category: product.category || "",
         supplier: product.supplier || "",
       });
@@ -75,6 +77,7 @@ const EditProductModal: React.FC<Props> = ({
         cost_price: form.cost_price,
         stock: form.stock,
         max_stock: form.max_stock,
+        min_stock: form.min_stock,
         category: form.category,
         supplier: form.supplier,
       });
@@ -140,6 +143,15 @@ const EditProductModal: React.FC<Props> = ({
             name="max_stock"
             type="number"
             value={form.max_stock}
+            onChange={handleChange}
+            fullWidth
+            required
+          />
+          <TextField
+            label="Minimum stock"
+            name="min_stock"
+            type="number"
+            value={form.min_stock}
             onChange={handleChange}
             fullWidth
             required

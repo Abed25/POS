@@ -31,12 +31,13 @@ export const createProduct = async (product, business_id) => {
     cost_price,
     stock,
     max_stock,
+    min_stock,
     category,
     supplier,
   } = product;
   // CRITICAL: Include business_id in the INSERT query
   const [result] = await db.query(
-    "INSERT INTO products (name, description, price, cost_price, stock,max_stock, category, supplier, business_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO products (name, description, price, cost_price, stock,max_stock,min_stock, category, supplier, business_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?,?)",
     [
       name,
       description,
@@ -44,6 +45,7 @@ export const createProduct = async (product, business_id) => {
       cost_price,
       stock,
       max_stock,
+      min_stock,
       category,
       supplier,
       business_id,
@@ -62,12 +64,13 @@ export const updateProduct = async (id, product, business_id) => {
     cost_price,
     stock,
     max_stock,
+    min_stock,
     category,
     supplier,
   } = product;
   // CRITICAL: Filter by product ID AND business_id
   await db.query(
-    "UPDATE products SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, max_stock = ?, category = ?, supplier = ? WHERE id = ? AND business_id = ?",
+    "UPDATE products SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, max_stock = ? , min_stock = ?, category = ?, supplier = ? WHERE id = ? AND business_id = ?",
     [
       name,
       description,
@@ -75,6 +78,7 @@ export const updateProduct = async (id, product, business_id) => {
       cost_price,
       stock,
       max_stock,
+      min_stock,
       category,
       supplier,
       id,
