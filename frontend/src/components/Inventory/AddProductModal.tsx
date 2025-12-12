@@ -23,9 +23,11 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
     name: "",
     description: "",
     price: 0,
+    cost_price: 0,
     stock: 0,
+    max_stock: 0,
     category: "",
-    sku: "",
+    supplier: "",
   });
   const [loading, setLoading] = useState(false);
 
@@ -47,9 +49,11 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
         name: "",
         description: "",
         price: 0,
+        cost_price: 0,
         stock: 0,
+        max_stock: 0,
         category: "",
-        sku: "",
+        supplier: "",
       });
     } catch (err) {
       console.error(err);
@@ -101,10 +105,28 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
               required
             />
             <TextField
+              label="Cost Price (KSh) *"
+              name="cost_price"
+              type="number"
+              value={form.cost_price}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
               label="Stock *"
               name="stock"
               type="number"
               value={form.stock}
+              onChange={handleChange}
+              fullWidth
+              required
+            />
+            <TextField
+              label="Maximum stock *"
+              name="max_stock"
+              type="number"
+              value={form.max_stock}
               onChange={handleChange}
               fullWidth
               required
@@ -117,9 +139,9 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
               fullWidth
             />
             <TextField
-              label="SKU *"
-              name="sku"
-              value={form.sku}
+              label="Supplier *"
+              name="supplier"
+              value={form.supplier}
               onChange={handleChange}
               fullWidth
               required

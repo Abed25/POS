@@ -30,11 +30,11 @@ const EditProductModal: React.FC<Props> = ({
     name: "",
     description: "",
     price: 0,
+    cost_price: 0,
     stock: 0,
+    max_stock: 0,
     category: "",
-    sku: "",
     supplier: "",
-    maxStockLevel: 0,
   });
   const [loading, setLoading] = useState(false);
 
@@ -44,11 +44,11 @@ const EditProductModal: React.FC<Props> = ({
         name: product.name || "",
         description: product.description || "",
         price: product.price || 0,
+        cost_price: product.cost_price || 0,
         stock: product.stock || 0,
+        max_stock: product.max_stock || 0,
         category: product.category || "",
-        sku: product.sku || "",
         supplier: product.supplier || "",
-        maxStockLevel: product.maxStockLevel || 0,
       });
     }
   }, [product, open]);
@@ -72,9 +72,11 @@ const EditProductModal: React.FC<Props> = ({
         name: form.name,
         description: form.description,
         price: form.price,
+        cost_price: form.cost_price,
         stock: form.stock,
+        max_stock: form.max_stock,
         category: form.category,
-        sku: form.sku,
+        supplier: form.supplier,
       });
       onEdited();
       onClose();
@@ -116,6 +118,15 @@ const EditProductModal: React.FC<Props> = ({
             required
           />
           <TextField
+            label="Cost price"
+            name="cost_price"
+            type="number"
+            value={form.cost_price}
+            onChange={handleChange}
+            fullWidth
+            required
+          />
+          <TextField
             label="Stock"
             name="stock"
             type="number"
@@ -125,6 +136,16 @@ const EditProductModal: React.FC<Props> = ({
             required
           />
           <TextField
+            label="Maximun stock"
+            name="max_stock"
+            type="number"
+            value={form.max_stock}
+            onChange={handleChange}
+            fullWidth
+            required
+          />
+
+          <TextField
             label="Category"
             name="category"
             value={form.category}
@@ -132,24 +153,9 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
           />
           <TextField
-            label="SKU"
-            name="sku"
-            value={form.sku}
-            onChange={handleChange}
-            fullWidth
-          />
-          <TextField
             label="Supplier"
             name="supplier"
             value={form.supplier}
-            onChange={handleChange}
-            fullWidth
-          />
-          <TextField
-            label="Max Stock Level"
-            name="maxStockLevel"
-            type="number"
-            value={form.maxStockLevel}
             onChange={handleChange}
             fullWidth
           />

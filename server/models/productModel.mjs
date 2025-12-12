@@ -24,11 +24,30 @@ export const getProductById = async (id, business_id) => {
 
 // Create a new product FOR A SPECIFIC BUSINESS
 export const createProduct = async (product, business_id) => {
-  const { name, description, price, stock, category, sku } = product;
+  const {
+    name,
+    description,
+    price,
+    cost_price,
+    stock,
+    max_stock,
+    category,
+    supplier,
+  } = product;
   // CRITICAL: Include business_id in the INSERT query
   const [result] = await db.query(
-    "INSERT INTO products (name, description, price, stock, category, sku, business_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [name, description, price, stock, category, sku, business_id]
+    "INSERT INTO products (name, description, price, cost_price, stock,max_stock, category, supplier, business_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    [
+      name,
+      description,
+      price,
+      cost_price,
+      stock,
+      max_stock,
+      category,
+      supplier,
+      business_id,
+    ]
   );
   // Remember that currency is in KES.
   return { id: result.insertId, business_id, ...product, currency: "KES" };
@@ -36,11 +55,31 @@ export const createProduct = async (product, business_id) => {
 
 // Update an existing product FOR A SPECIFIC BUSINESS
 export const updateProduct = async (id, product, business_id) => {
-  const { name, description, price, stock, category, sku } = product;
+  const {
+    name,
+    description,
+    price,
+    cost_price,
+    stock,
+    max_stock,
+    category,
+    supplier,
+  } = product;
   // CRITICAL: Filter by product ID AND business_id
   await db.query(
-    "UPDATE products SET name = ?, description = ?, price = ?, stock = ?, category = ?, sku = ? WHERE id = ? AND business_id = ?",
-    [name, description, price, stock, category, sku, id, business_id]
+    "UPDATE products SET name = ?, description = ?, price = ?, cost_price = ?, stock = ?, max_stock = ?, category = ?, supplier = ? WHERE id = ? AND business_id = ?",
+    [
+      name,
+      description,
+      price,
+      cost_price,
+      stock,
+      max_stock,
+      category,
+      supplier,
+      id,
+      business_id,
+    ]
   );
   return { id, business_id, ...product };
 };

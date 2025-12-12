@@ -14,12 +14,13 @@ export interface Product {
   name: string;
   description?: string;
   price: number; // maps to decimal(10,2)
+  cost_price: number;
   stock: number;
   category?: string;
   sku?: string;
   created_at: string; // timestamp -> string
   updated_at: string; // timestamp -> string
-  maxStockLevel?: number;
+  max_stock?: number;
   supplier?: string | null;
 }
 

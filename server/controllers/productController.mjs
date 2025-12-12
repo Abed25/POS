@@ -54,12 +54,21 @@ export const addProduct = async (req, res) => {
     // 🔑 Extract business_id from the authenticated user
     const { business_id } = req.user;
 
-    const { name, description, price, stock, category, sku } = req.body;
+    const {
+      name,
+      description,
+      price,
+      cost_price,
+      stock,
+      max_stock,
+      category,
+      supplier,
+    } = req.body;
 
-    if (!name || !price || !stock || !sku) {
+    if (!name || !price || !cost_price || !stock) {
       return res
         .status(400)
-        .json({ message: "Name, price, stock, and SKU are required" });
+        .json({ message: "Name, price,cost_price and s stock are required" });
     }
 
     const newProduct = await createProduct(
@@ -67,9 +76,11 @@ export const addProduct = async (req, res) => {
         name,
         description,
         price,
+        cost_price,
         stock,
+        max_stock,
         category,
-        sku,
+        supplier,
       },
       business_id
     ); // Pass the tenant ID for creation
@@ -89,11 +100,29 @@ export const editProduct = async (req, res) => {
     // 🔑 Extract business_id from the authenticated user
     const { business_id } = req.user;
 
-    const { name, description, price, stock, category, sku } = req.body; // Pass the product ID, the update data, and the tenant ID for scoping
+    const {
+      name,
+      description,
+      price,
+      cost_price,
+      stock,
+      max_stock,
+      category,
+      supplier,
+    } = req.body; // Pass the product ID, the update data, and the tenant ID for scoping
 
     const updatedProduct = await updateProduct(
       req.params.id,
-      { name, description, price, stock, category, sku },
+      {
+        name,
+        description,
+        price,
+        cost_price,
+        stock,
+        max_stock,
+        category,
+        supplier,
+      },
       business_id
     );
 
