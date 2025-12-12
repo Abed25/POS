@@ -56,7 +56,12 @@ export const Inventory: React.FC = () => {
         const stock = Number(d.stock ?? d.currentStock ?? d.current_stock ?? 0);
         const maxStockLevelRaw =
           d.maxStockLevel ?? d.max_stock ?? d.maxStock ?? undefined;
-
+        const minStockRaw =
+          d.min_stock ??
+          d.minStock ??
+          d.minimum_stock ??
+          d.minimumStock ??
+          undefined;
         return {
           id,
           name: d.name ?? d.productName ?? "",
@@ -71,6 +76,12 @@ export const Inventory: React.FC = () => {
             maxStockLevelRaw !== undefined
               ? Number(maxStockLevelRaw)
               : undefined,
+
+          min_stock:
+            minStockRaw !== undefined && Number.isFinite(Number(minStockRaw))
+              ? Number(minStockRaw)
+              : undefined,
+
           supplier: d.supplier ?? null,
         } as Product;
       });
@@ -104,35 +115,36 @@ export const Inventory: React.FC = () => {
     fetchInventory(); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // ... (rest of the component logic is unchanged)
 
-  const getStatus = (stock: number, min = 5) => {
+  const getStatus = (stock: number, min_stock?: number) => {
+    const min = Number.isFinite(min_stock) ? min_stock! : 5; // fallback to 5
     if (stock === 0) return "out_of_stock";
     if (stock <= min) return "low_stock";
     return "in_stock";
   };
 
-  const getStatusBadge = (stock: number) => {
-    const s = getStatus(stock);
+  const getStatusBadge = (stock: number, min_stock?: number) => {
+    const s = getStatus(stock, min_stock);
     if (s === "out_of_stock")
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                    Out of Stock      
+          Out of Stock
         </span>
       );
     if (s === "low_stock")
       return (
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Low Stock      
+          Low Stock
         </span>
       );
     return (
       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                In Stock    
+        In Stock
       </span>
     );
   };
 
   const filteredInventory = inventory.filter((item) => {
-    const status = getStatus(item.stock);
+    const status = getStatus(item.stock, item.min_stock);
     const matchesFilter =
       filter === "low_stock"
         ? status === "low_stock" || status === "out_of_stock"
@@ -274,203 +286,138 @@ export const Inventory: React.FC = () => {
       </div>
             {/* Filter Tabs */}   
       <div className="mb-6">
-             
         <nav className="flex space-x-8">
-                 
-          {(
-            [
-              { key: "all", label: "All Items" },
-              { key: "low_stock", label: "Alerts" },
-              { key: "in_stock", label: "In Stock" },
-            ] as { key: FilterType; label: string }[]
-          ).map((tab) => (
+          {[
+            { key: "all", label: "All Items" },
+            { key: "low_stock", label: "Alerts" },
+            { key: "in_stock", label: "In Stock" },
+          ].map((tab) => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key)}
+              onClick={() => setFilter(tab.key as FilterType)}
               className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
                 filter === tab.key
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
               }`}
             >
-                            {tab.label}           
+              {tab.label}
               {tab.key === "low_stock" && (
                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                 
                   {
                     inventory.filter((p) => {
-                      const s = getStatus(p.stock);
+                      const s = getStatus(p.stock, p.min_stock);
                       return s === "low_stock" || s === "out_of_stock";
                     }).length
                   }
-                               
                 </span>
               )}
-                       
             </button>
           ))}
-               
         </nav>
-           
       </div>
-            {/* Inventory Grid */}   
+      {/* Inventory Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-             
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
               className="bg-white overflow-hidden shadow rounded-lg animate-pulse"
             >
-                         
               <div className="p-6">
-                             
-                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>     
-                       
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>     
-                       
-                <div className="h-2 bg-gray-200 rounded w-full mb-2"></div>     
-                          <div className="h-8 bg-gray-200 rounded w-1/3"></div> 
-                         
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                <div className="h-2 bg-gray-200 rounded w-full mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded w-1/3"></div>
               </div>
-                       
             </div>
           ))
         ) : fetchError ? (
           <div className="col-span-full">
-                     
             <div className="bg-white rounded-lg shadow p-6 text-center">
-                         
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                Unable to load products            
+                Unable to load products
               </h3>
-                         
-              <p className="text-sm text-gray-600 mb-4">{fetchError}</p>       
-                 
+              <p className="text-sm text-gray-600 mb-4">{fetchError}</p>
               <div className="flex items-center justify-center gap-3">
-                             
                 <button
                   onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
                 >
-                                    Retry              
+                  Retry
                 </button>
-                             
                 <button
                   onClick={() => window.location.reload()}
                   className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
                 >
-                                    Reload page              
+                  Reload page
                 </button>
-                           
               </div>
-                         
-              <p className="mt-3 text-xs text-gray-400">
-                                If the problem persists, check your connection
-                or contact                 support.            
-              </p>
-                       
             </div>
-                   
           </div>
         ) : totalProducts === 0 ? (
-          // true empty database state
           <div className="col-span-full">
-                     
             <div className="bg-white rounded-lg shadow p-8 text-center">
-                         
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                No products yet            
+                No products yet
               </h3>
-                         
               <p className="text-sm text-gray-600 mb-6">
-                                Your inventory is empty. Start by adding your
-                first product.            
+                Your inventory is empty. Start by adding your first product.
               </p>
-                         
               <div className="flex items-center justify-center gap-3">
-                             
                 <AddProductModal
                   onAdded={() => refreshAndNotify("Product added")}
                 />
-                             
                 <button
                   onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
                 >
-                                    Refresh              
+                  Refresh
                 </button>
-                           
               </div>
-                         
-              <p className="mt-3 text-xs text-gray-400">
-                                If the problem persists, check your connection
-                or contact                 support.            
-              </p>
-                       
             </div>
-                   
           </div>
         ) : filteredCount === 0 ? (
-          // no results for current filter/search
           <div className="col-span-full">
-                     
             <div className="bg-white rounded-lg shadow p-8 text-center">
-                         
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                No items match this view            
+                No items match this view
               </h3>
-                         
               <p className="text-sm text-gray-600 mb-4">
-                             
                 {filter === "low_stock"
                   ? "No alerts right now — all products are sufficiently stocked."
                   : filter === "in_stock"
                   ? "No items currently in stock."
                   : "No products match your search or filters."}
-                           
               </p>
-                         
               <div className="flex items-center justify-center gap-3">
-                             
                 <button
                   onClick={() => setFilter("all")}
                   className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
                 >
-                                    View all products              
+                  View all products
                 </button>
-                             
                 <AddProductModal
                   onAdded={() => refreshAndNotify("Product added")}
                 />
-                             
                 <button
                   onClick={() => refreshAndNotify()}
                   className="px-4 py-2 rounded border bg-white text-gray-700 hover:bg-gray-50 transition"
                 >
-                                    Refresh              
+                  Refresh
                 </button>
-                           
               </div>
-                         
-              <p className="mt-3 text-xs text-gray-400">
-                                Try clearing the search box or switching tabs to
-                view other                 items.            
-              </p>
-                       
             </div>
-                   
           </div>
         ) : (
           paginatedInventory.map((item) => {
-            const status = getStatus(item.stock);
+            const status = getStatus(item.stock, item.min_stock);
             const max = item.max_stock ?? Math.max(20, item.stock);
             const pct = Math.min(
               100,
               Math.round((item.stock / Math.max(1, max)) * 100)
             );
 
-            // Define professional border and background based on stock status
             const alertClass =
               status === "out_of_stock"
                 ? "border-l-4 border-red-600 bg-red-50"
@@ -483,32 +430,17 @@ export const Inventory: React.FC = () => {
                 key={item.id}
                 className={`overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow ${alertClass}`}
               >
-                             
                 <div className="p-4 sm:p-5">
-                  {" "}
-                  {/* Reduced padding for more density */}                 
-                  {/* TOP SECTION: Name, Alert Icon, and SKU */}               
                   <div className="flex items-start justify-between">
-                                     
                     <div className="flex-1 min-w-0">
-                                         
                       <h3 className="text-base font-semibold text-gray-900 truncate">
-                        {" "}
-                        {/* Smaller font, bold name */}                     
-                        {item.name}                   
+                        {item.name}
                       </h3>
-                      {/*                       <p className="text-xs text-gray-500 mt-0.5">
-                        Profit: <span className="font-medium text-gray-700">{item.cost_price ?? "-"}</span>
-                      </p> */}
-                                       
                     </div>
-                                     
                     {(status === "low_stock" || status === "out_of_stock") && (
                       <ExclamationTriangleIcon className="h-6 w-6 text-red-500 ml-3 flex-shrink-0" />
                     )}
-                                   
                   </div>
-                  {/* Stock Status Bar & Count */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
@@ -534,7 +466,6 @@ export const Inventory: React.FC = () => {
                         : `Target: ${max}`}
                     </p>
                   </div>
-                  {/* Pricing and Details */}               
                   <div className="mt-4 space-y-2">
                                         {/* Unit Price */}                 
                     <div className="flex items-center justify-between text-sm">
@@ -603,13 +534,11 @@ export const Inventory: React.FC = () => {
                     </div>
                                    
                   </div>
-                                 {/* Actions and Status Badge (Cleaned up) */} 
-                               
+
                   <div className="mt-5 flex flex-wrap gap-2 justify-between items-center border-t pt-4 border-gray-200">
-                                       {getStatusBadge(item.stock)}             
-                       
+                    {getStatusBadge(item.stock, item.min_stock)}
+
                     <div className="flex gap-2">
-                                         
                       <button
                         className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition flex-grow"
                         onClick={() => {
@@ -617,9 +546,8 @@ export const Inventory: React.FC = () => {
                           setRestockModalOpen(true);
                         }}
                       >
-                                                Restock                    
+                        Restock
                       </button>
-                                         
                       <button
                         onClick={() => {
                           setEditProduct(item);
@@ -627,9 +555,8 @@ export const Inventory: React.FC = () => {
                         }}
                         className="px-3 py-1 rounded border border-gray-300 bg-white text-gray-700 text-xs font-medium hover:bg-gray-50 transition"
                       >
-                                                Edit                    
+                        Edit
                       </button>
-                                         
                       <button
                         className="px-3 py-1 rounded border border-red-600 text-red-600 text-xs font-medium hover:bg-red-50 transition"
                         onClick={() => {
@@ -637,36 +564,17 @@ export const Inventory: React.FC = () => {
                           setDeleteModalOpen(true);
                         }}
                       >
-                                                Del                    
+                        Del
                       </button>
-                                       
                     </div>
-                                   
                   </div>
-                               
                 </div>
-                           
               </div>
             );
           })
         )}
-           
+        <div ref={listEndRef}></div>
       </div>
-            {/* sentinel for infinite scroll */}
-            <div ref={listEndRef} />      {/* fallback / manual load more */}   
-      {!loading && hasMore && (
-        <div className="mt-6 flex justify-center">
-                 
-          <button
-            className="px-4 py-2 rounded-lg border bg-white text-gray-700 hover:bg-gray-50"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={isFetchingMore}
-          >
-                        {isFetchingMore ? "Loading..." : "Load more"}       
-          </button>
-               
-        </div>
-      )}
             {/* modals */}
          
       <RestockProductModal
