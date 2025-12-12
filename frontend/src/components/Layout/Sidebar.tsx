@@ -6,6 +6,7 @@ import {
   CubeIcon,
   DocumentChartBarIcon,
   UsersIcon,
+  ChartBarIcon,
   CogIcon,
   Bars3Icon, // menu
   XMarkIcon, // close
@@ -50,11 +51,18 @@ const navigation = [
     roles: ["admin", "cashier", "customer"],
   },
   {
+    name: "Reports",
+    href: "/reports",
+    icon: ChartBarIcon,
+    roles: ["admin"],
+  },
+  {
     name: "Users Management",
     href: "/users",
     icon: UsersIcon,
     roles: ["admin"],
-  },
+  }, 
+  { name: "Settings", href: "/settings", icon: CogIcon, roles: ["admin"] },
 ];
 
 export const Sidebar: React.FC = () => {
