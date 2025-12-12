@@ -39,7 +39,8 @@ export interface Sale {
   quantity: number;
 
   // unit_price can be null from the database
-  unit_price: number | string | null;
+  selling_price: number | string | null;
+  cost_price: number | string | null;
 
   // total_price is returned as a string
   total_price: string;

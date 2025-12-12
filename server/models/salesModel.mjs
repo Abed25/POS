@@ -2,21 +2,31 @@ import db from "../config/db.mjs";
 
 export const createSale = async ({
   product_id,
-  unit_price,
+  selling_price,
+  cost_price,
   quantity,
   total_price,
   user_id,
   business_id, // 🔑 NEW: Accept business_id
 }) => {
   const [result] = await db.query(
-    "INSERT INTO sales (product_id, unit_price, quantity, total_price, user_id, business_id) VALUES (?, ?, ?, ?, ?, ?)", // 🔑 Insert business_id
-    [product_id, unit_price, quantity, total_price, user_id, business_id]
+    "INSERT INTO sales (product_id, selling_price, cost_price, quantity, total_price, user_id, business_id) VALUES (?, ?, ?, ?, ?, ?,?)", // 🔑 Insert business_id
+    [
+      product_id,
+      selling_price,
+      cost_price,
+      quantity,
+      total_price,
+      user_id,
+      business_id,
+    ]
   );
 
   return {
     id: result.insertId,
     product_id,
-    unit_price,
+    selling_price,
+    cost_price,
     quantity,
     total_price,
     user_id,
@@ -31,10 +41,11 @@ export const createBulkSales = async (salesArray, business_id) => {
 
   for (const sale of salesArray) {
     // Now adding a 6th value for business_id
-    queryParts.push("(?, ?, ?, ?, ?, ?)");
+    queryParts.push("(?, ?, ?, ?, ?, ?, ?)");
     queryValues.push(
       sale.product_id,
-      sale.unit_price,
+      sale.selling_price,
+      sale.cost_price,
       sale.quantity,
       sale.total_price,
       sale.user_id,
@@ -43,7 +54,7 @@ export const createBulkSales = async (salesArray, business_id) => {
   }
 
   const sql = `
- INSERT INTO sales (product_id, unit_price, quantity, total_price, user_id, business_id) 
+ INSERT INTO sales (product_id, selling_price, cost_price, quantity, total_price, user_id, business_id) 
  VALUES ${queryParts.join(", ")}
  `;
 
@@ -67,7 +78,7 @@ export const getSales = async (business_id, userId) => {
 
   const [rows] = await db.query(
     `
-    SELECT  s.id, p.name AS product_name, s.unit_price, s.quantity, s.total_price, u.username AS seller, s.sale_date, s.receipt_number
+    SELECT  s.id, p.name AS product_name, s.selling_price,s.cost_price, s.quantity, s.total_price, u.username AS seller, s.sale_date, s.receipt_number
  FROM  sales s
  INNER JOIN  products p ON s.product_id = p.id
  INNER JOIN  users u ON s.user_id = u.id
@@ -86,7 +97,8 @@ export const getSaleById = async (id, business_id) => {
     SELECT 
         s.id,
         p.name AS product_name,
-        s.unit_price,
+        s.selling_price,
+        s.cost_price,
         s.quantity,
         s.total_price,
         u.username AS seller,
@@ -122,7 +134,8 @@ export const getSalesByDateRange = async (from, to, business_id, userId) => {
 s.id,
 p.name AS product_name, 
 u.username AS seller,
-s.unit_price,
+s.selling_price,
+s.cost_price,
 s.quantity,
 s.total_price,
 s.sale_date,
@@ -149,7 +162,8 @@ export const getSalesByUser = async (user_id, business_id) => {
     `SELECT 
 s.id,
 p.name AS product_name, 
-s.unit_price,
+s.selling_price,
+s.cost_price,
 s.total_price,
 u.username AS seller,
 s.sale_date,

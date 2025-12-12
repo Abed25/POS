@@ -38,12 +38,14 @@ export const addSale = async (req, res) => {
       return res.status(400).json({ message: "Not enough stock available" });
     } // 3. Calculate total price
 
-    const unit_price = product.price;
-    const total_price = unit_price * quantity; // 4. Insert into sales with both user and business ID
+    const selling_price = product.price;
+    const cost_price = product.cost_price;
+    const total_price = selling_price * quantity; // 4. Insert into sales with both user and business ID
 
     const newSale = await createSale({
       product_id,
-      unit_price,
+      selling_price,
+      cost_price,
       quantity,
       total_price,
       user_id: userId,
@@ -210,11 +212,9 @@ export const addBulkSale = async (req, res) => {
       const product = await getProductById(product_id, businessId);
 
       if (!product) {
-        return res
-          .status(404)
-          .json({
-            message: `Product ID ${product_id} not found or access denied.`,
-          });
+        return res.status(404).json({
+          message: `Product ID ${product_id} not found or access denied.`,
+        });
       }
 
       if (product.stock < quantity) {
@@ -223,13 +223,15 @@ export const addBulkSale = async (req, res) => {
         });
       } // 2. Calculate details and build DB entry
 
-      const unit_price = product.price;
-      const total_price = unit_price * quantity;
+      const selling_price = product.price;
+      const cost_price = product.cost_price;
+      const total_price = selling_price * quantity;
       totalPriceSum += total_price; // Prepare the fully detailed object for the model function
 
       salesForDB.push({
         product_id,
-        unit_price,
+        selling_price,
+        cost_price,
         quantity,
         total_price,
         user_id: userId,
