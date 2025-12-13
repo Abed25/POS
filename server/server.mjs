@@ -7,6 +7,7 @@ import authRoutes from "./routes/authRoutes.mjs";
 import userRoutes from "./routes/userRoutes.mjs";
 import reportRoutes from "./routes/reportRoutes.mjs";
 import businessRoutes from "./routes/businessRoute.mjs";
+import kpiRoutes from "./routes/kpiRoute.mjs";
 
 dotenv.config();
 
@@ -22,6 +23,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/business", businessRoutes);
+app.use("/api/kpis", kpiRoutes);
 
 app.get("/", (req, res) => {
   res.send("This  is my backend server");
