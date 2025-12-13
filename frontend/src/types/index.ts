@@ -107,3 +107,21 @@ export interface DashboardMetrics {
   revenueGrowth: number;
   salesGrowth: number;
 }
+
+// types/kpi.ts
+export type IconKey =
+  | "dollar_sign"
+  | "trending_up"
+  | "shopping_cart"
+  | "calculator"
+  | "package"
+  | "users";
+
+export interface KPI {
+  title: string;
+  value: number;
+  trend: number;
+  currency: string;
+  icon_key: IconKey;
+  period: string;
+}
