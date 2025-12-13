@@ -2,6 +2,8 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
+import type { KPI } from "../types/index";
+
 class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);
@@ -149,6 +151,11 @@ export const salesApi = {
     }),
 
   getById: (id: number) => apiRequest(`/sales/${id}`),
+};
+
+/* ---------- KPIS ---------- */
+export const kpisApi = {
+  getAll: (): Promise<KPI[]> => apiRequest("/kpis"),
 };
 
 /* ---------- REPORTS ---------- */
