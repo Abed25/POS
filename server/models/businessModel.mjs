@@ -17,10 +17,10 @@ export const createBusiness = async (name, ownerId) => {
 
 export const findBusinessByName = async (businessName) => {
   const [rows] = await db.query(
-    "SELECT id FROM businesses WHERE business_name = ?",
+    "SELECT id FROM businesses WHERE name = ?", // Changed business_name to name
     [businessName]
   );
-  return rows[0]; // Returns the business object or undefined/null
+  return rows[0];
 };
 
 // /**
