@@ -125,3 +125,9 @@ export interface KPI {
   icon_key: IconKey;
   period: string;
 }
+
+export interface PerformanceData {
+  month: string; // e.g., "Jan", "Feb"
+  revenue: number; // Total KES collected
+  profit: number; // Revenue minus cost
+}
