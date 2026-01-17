@@ -48,7 +48,9 @@ const StoreCatalog: React.FC = () => {
         setProducts(data);
       } catch (err) {
         console.error("Failed to fetch products:", err);
-        setError("Failed to load products. Please check the network connection.");
+        setError(
+          "Failed to load products. Please check the network connection.",
+        );
       } finally {
         setLoading(false);
       }
@@ -60,9 +62,11 @@ const StoreCatalog: React.FC = () => {
   const filteredProducts = useMemo(() => {
     if (!searchTerm) return products;
     const lowercasedSearchTerm = searchTerm.toLowerCase();
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(lowercasedSearchTerm) || 
-      (product.description && product.description.toLowerCase().includes(lowercasedSearchTerm))
+    return products.filter(
+      (product) =>
+        product.name.toLowerCase().includes(lowercasedSearchTerm) ||
+        (product.description &&
+          product.description.toLowerCase().includes(lowercasedSearchTerm)),
     );
   }, [products, searchTerm]);
 
@@ -73,9 +77,12 @@ const StoreCatalog: React.FC = () => {
   const currentProducts = useMemo(() => {
     return filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   }, [filteredProducts, currentPage, productsPerPage]);
-  
+
   // --- Handlers (unchanged) ---
-  const handlePageChange = (event: React.ChangeEvent<unknown>, page: number) => {
+  const handlePageChange = (
+    _event: React.ChangeEvent<unknown>,
+    page: number,
+  ) => {
     setCurrentPage(page);
   };
   const handlePageSizeChange = (event: any) => {
@@ -92,7 +99,9 @@ const StoreCatalog: React.FC = () => {
     return (
       <Container style={{ textAlign: "center", marginTop: "50px" }}>
         <CircularProgress />
-        <Typography variant="body1" sx={{ mt: 1 }}>Loading catalog...</Typography>
+        <Typography variant="body1" sx={{ mt: 1 }}>
+          Loading catalog...
+        </Typography>
       </Container>
     );
   }
@@ -116,7 +125,12 @@ const StoreCatalog: React.FC = () => {
   // --- Main Render: Display Products ---
   return (
     <Container maxWidth="lg" sx={{ pt: 4, pb: 4 }}>
-      <Typography variant="h5" gutterBottom fontWeight="600" color="text.primary">
+      <Typography
+        variant="h5"
+        gutterBottom
+        fontWeight="600"
+        color="text.primary"
+      >
         Store Inventory Lookup
       </Typography>
 
@@ -172,69 +186,89 @@ const StoreCatalog: React.FC = () => {
       >
         {currentProducts.map((product) => {
           const isOutOfStock = product.stock <= 0;
-          
+
           return (
             <Card
               key={product.id as React.Key}
               elevation={2} // Reduced elevation for cleaner look
               sx={{
-                transition: 'all 0.3s',
-                '&:hover': {
-                    elevation: 4, // Slight lift on hover
+                transition: "all 0.3s",
+                "&:hover": {
+                  elevation: 4, // Slight lift on hover
                 },
-                backgroundColor: isOutOfStock ? theme.palette.grey[50] : 'white',
-                borderLeft: isOutOfStock ? `4px solid ${theme.palette.error.main}` : `4px solid ${theme.palette.primary.main}`,
+                backgroundColor: isOutOfStock
+                  ? theme.palette.grey[50]
+                  : "white",
+                borderLeft: isOutOfStock
+                  ? `4px solid ${theme.palette.error.main}`
+                  : `4px solid ${theme.palette.primary.main}`,
               }}
             >
               <CardContent sx={{ p: 2 }}>
                 <Stack spacing={1}>
-                  
                   {/* 1. Product Name */}
-                  <Typography variant="subtitle2" component="div" noWrap fontWeight="600">
+                  <Typography
+                    variant="subtitle2"
+                    component="div"
+                    noWrap
+                    fontWeight="600"
+                  >
                     {product.name}
                   </Typography>
 
                   <Divider sx={{ my: 0.5 }} />
-                  
+
                   {/* 2. Price (Clear, Standard Size) */}
-                  <Typography variant="h6" fontWeight="700" color={theme.palette.primary.dark}>
+                  <Typography
+                    variant="h6"
+                    fontWeight="700"
+                    color={theme.palette.primary.dark}
+                  >
                     {product.price
                       ? `KES ${Number(product.price).toFixed(2)}`
                       : "Price N/A"}
                   </Typography>
-                  
+
                   {/* 3. Stock Status & Count */}
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                  >
                     <Typography variant="caption" color="text.secondary">
-                        Stock:
+                      Stock:
                     </Typography>
                     <Chip
-                      label={isOutOfStock ? "Out of Stock" : `${product.stock} units`}
+                      label={
+                        isOutOfStock ? "Out of Stock" : `${product.stock} units`
+                      }
                       size="small"
                       color={isOutOfStock ? "error" : "success"}
                       variant="outlined"
-                      sx={{ 
-                          fontWeight: 'bold', 
-                          height: 24, 
-                          fontSize: '0.7rem' 
+                      sx={{
+                        fontWeight: "bold",
+                        height: 24,
+                        fontSize: "0.7rem",
                       }}
                     />
                   </Stack>
-                  
 
                   {/* 4. Description (Very Subtle) */}
                   <Box sx={{ pt: 1 }}>
-                    <Typography variant="caption" color="text.disabled" sx={{ 
-                        overflow: 'hidden', 
-                        textOverflow: 'ellipsis', 
-                        display: '-webkit-box', 
-                        WebkitLineClamp: 2, 
-                        WebkitBoxOrient: 'vertical' 
-                    }}>
+                    <Typography
+                      variant="caption"
+                      color="text.disabled"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                    >
                       {product.description || "No specific details available."}
                     </Typography>
                   </Box>
-                  
                 </Stack>
               </CardContent>
             </Card>

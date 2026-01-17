@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { FunnelIcon } from "@heroicons/react/24/outline";
 import { salesApi } from "../lib/api";
 import { format } from "date-fns";
@@ -35,7 +35,7 @@ export const Sales = () => {
       // salesApi.list handles the role filtering automatically based on localStorage
       const apiResponse = await salesApi.list(
         filters.from || undefined,
-        filters.to || undefined
+        filters.to || undefined,
       );
 
       setSales(apiResponse as Sale[]);
