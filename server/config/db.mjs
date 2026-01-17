@@ -4,16 +4,15 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+  host: process.env.DB_HOST || process.env.MYSQL_ADDON_HOST,
+  port: Number(process.env.DB_PORT || process.env.MYSQL_ADDON_PORT || 3306),
+  user: process.env.DB_USER || process.env.MYSQL_ADDON_USER,
+  password: process.env.DB_PASSWORD || process.env.MYSQL_ADDON_PASSWORD,
+  database: process.env.DB_NAME || process.env.MYSQL_ADDON_DB,
   waitForConnections: true,
   connectionLimit: Number(process.env.DB_CONN_LIMIT || 10),
   queueLimit: 0,
 });
-
 /**
  * Simple query helper using the pool.
  * Returns rows (array) from SELECT/INSERT/UPDATE queries.
