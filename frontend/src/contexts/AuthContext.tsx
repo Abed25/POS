@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useReducer,
-  useRef,
-} from "react";
+import React, { createContext, useContext, useEffect, useReducer } from "react";
 import type { User, AuthState } from "../types";
 import axios from "axios";
 
@@ -138,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         username,
         email: "", // Placeholder if not returned
         role: data.role as "admin" | "cashier" | "customer",
+        business_id: 0,
         createdAt: new Date().toISOString(),
       };
 
