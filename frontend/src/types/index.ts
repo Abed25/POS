@@ -131,3 +131,12 @@ export interface PerformanceData {
   revenue: number; // Total KES collected
   profit: number; // Revenue minus cost
 }
+
+/* ---------- INVENTORY API ---------- */
+export interface InventoryStats {
+  turnoverRate: number;
+  daysOfStock: number;
+  monthlyCogs: number;
+  vsLastYear: number;
+  maxRate: number;
+}
