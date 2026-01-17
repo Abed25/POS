@@ -1,5 +1,5 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
-import { cn } from "../../lib/utils";
+import { cn } from "../../lib/utils.ts";
 
 interface KPICardProps {
   title: string;
@@ -26,19 +26,19 @@ export function KPICard({
   const trendColorClass = isPositive
     ? "text-emerald-600"
     : isNegative
-    ? "text-red-600"
-    : "text-gray-500";
+      ? "text-red-600"
+      : "text-gray-500";
 
   /* ---------- Indicator Color (kept simple) ---------- */
   const indicatorColor = title.includes("Revenue")
     ? "bg-indigo-500"
     : title.includes("Profit")
-    ? "bg-emerald-500"
-    : title.includes("Orders")
-    ? "bg-amber-500"
-    : title.includes("Users")
-    ? "bg-sky-500"
-    : "bg-gray-400";
+      ? "bg-emerald-500"
+      : title.includes("Orders")
+        ? "bg-amber-500"
+        : title.includes("Users")
+          ? "bg-sky-500"
+          : "bg-gray-400";
 
   return (
     <div
@@ -46,7 +46,7 @@ export function KPICard({
         "relative overflow-hidden bg-white rounded-xl",
         "border border-gray-100 p-6",
         "shadow-sm hover:shadow-lg transition-all duration-300",
-        "hover:-translate-y-0.5"
+        "hover:-translate-y-0.5",
       )}
       style={{ animation: `fade-in 0.3s ease-out ${delay}ms forwards` }}
     >
@@ -74,7 +74,7 @@ export function KPICard({
           <span
             className={cn(
               "flex items-center gap-1 text-sm font-semibold",
-              trendColorClass
+              trendColorClass,
             )}
           >
             {isPositive && <TrendingUp className="h-4 w-4" />}
