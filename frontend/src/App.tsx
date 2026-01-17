@@ -16,6 +16,7 @@ import { Inventory } from "./pages/Inventory";
 import Test from "./pages/Test";
 import UserProducts from "./pages/userProducts.tsx";
 import UserManagement from "./pages/userManagement.tsx";
+import Report from "./pages/Reports.tsx";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -98,12 +99,13 @@ const AppRoutes: React.FC = () => {
         path="/reports"
         element={
           <ProtectedRoute>
-            <div className="text-center py-12">
+            {/* <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900">Reports</h2>
               <p className="mt-2 text-gray-600">
                 Reports functionality coming soon...
               </p>
-            </div>
+            </div> */}
+            <Report />
           </ProtectedRoute>
         }
       />
