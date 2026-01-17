@@ -1,11 +1,15 @@
 // ✅ Adjust BASE URL to your backend
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://pos-backend-three-sooty.vercel.app/api";
 
-import type { KPI, PerformanceData } from "../types/index";
+import type { KPI, PerformanceData, InventoryStats } from "../types/index";
 
 class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
     this.name = "ApiError";
   }
@@ -15,7 +19,7 @@ const getToken = (): string | null => localStorage.getItem("auth_token");
 
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
   const token = getToken();
   const url = `${API_BASE_URL}${endpoint}`;
@@ -162,6 +166,12 @@ export const analyticsApi = {
   getMonthlyPerformance: (): Promise<PerformanceData[]> =>
     apiRequest("/analytics/performance"),
 };
+
+export const inventoryApi = {
+  getTurnoverStats: (): Promise<InventoryStats> =>
+    apiRequest("/inventory-stats"),
+};
+
 /* ---------- REPORTS ---------- */
 export const reportApi = {
   salesSummary: (from: string, to: string) => {

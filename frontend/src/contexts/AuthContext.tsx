@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useReducer, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+} from "react";
 import type { User, AuthState } from "../types";
 import axios from "axios";
 
@@ -23,7 +29,7 @@ type AuthAction =
 
 const authReducer = (
   state: AuthState & { loading: boolean },
-  action: AuthAction
+  action: AuthAction,
 ): AuthState & { loading: boolean } => {
   switch (action.type) {
     case "SET_LOADING":
@@ -98,16 +104,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Check for 401 Unauthorized (Token Expired)
         if (error.response && error.response.status === 401) {
           console.warn("Token expired or invalid. Logging out...");
-          
+
           dispatch({ type: "LOGOUT" });
 
           // Prevent infinite reload loop if already on login page
           if (!window.location.pathname.includes("/login")) {
-             window.location.href = "/login";
+            window.location.href = "/login";
           }
         }
         return Promise.reject(error);
-      }
+      },
     );
 
     // Cleanup: Remove interceptor when component unmounts
@@ -121,9 +127,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const { data } = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        "https://pos-backend-three-sooty.vercel.app/api/auth/login",
         { username, password },
-        { headers: { "Content-Type": "application/json" } }
+        { headers: { "Content-Type": "application/json" } },
       );
 
       // Build User object (adjust fields based on your actual API response)
