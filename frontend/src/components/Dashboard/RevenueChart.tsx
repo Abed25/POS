@@ -31,7 +31,11 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({ data }) => {
             tickFormatter={(value) => `$${value}`}
           />
           <Tooltip
-            formatter={(value: number) => [`$${value}`, "Revenue"]}
+            formatter={(value: any) => {
+              if (value === undefined || value === null)
+                return ["KES 0", "Revenue"];
+              return [`KES ${Number(value).toLocaleString()}`, "Revenue"];
+            }}
             labelStyle={{ color: "#374151" }}
           />
           <Line
