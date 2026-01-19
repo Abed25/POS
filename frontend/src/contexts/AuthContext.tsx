@@ -117,11 +117,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   // 3. Login Function
+  const backendUrl = import.meta.env.VITE_API_BASE_URL;
   const login = async (username: string, password: string): Promise<void> => {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const { data } = await axios.post(
-        "https://pos-backend-three-sooty.vercel.app/api/auth/login",
+        `${backendUrl}/auth/login`,
         { username, password },
         { headers: { "Content-Type": "application/json" } },
       );

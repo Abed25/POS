@@ -1,7 +1,5 @@
 // ✅ Adjust BASE URL to your backend
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  "https://pos-backend-three-sooty.vercel.app/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 import type { KPI, PerformanceData, InventoryStats } from "../types/index";
 
