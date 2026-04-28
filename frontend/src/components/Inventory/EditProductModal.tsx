@@ -15,7 +15,7 @@ interface Props {
   open: boolean;
   product: Product | null;
   onClose: () => void;
-  onEdited: () => void; // reload list after editing
+  onEdited: () => void;
 }
 
 const EditProductModal: React.FC<Props> = ({
@@ -37,6 +37,7 @@ const EditProductModal: React.FC<Props> = ({
     category: "",
     supplier: "",
   });
+
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -44,11 +45,11 @@ const EditProductModal: React.FC<Props> = ({
       setForm({
         name: product.name || "",
         description: product.description || "",
-        price: product.price || 0,
-        cost_price: product.cost_price || 0,
-        stock: product.stock || 0,
-        max_stock: product.max_stock || 0,
-        min_stock: product.min_stock || 0,
+        price: product.price ?? 0,
+        cost_price: product.cost_price ?? 0,
+        stock: product.stock ?? 0,
+        max_stock: product.max_stock ?? 0,
+        min_stock: product.min_stock ?? 0,
         category: product.category || "",
         supplier: product.supplier || "",
       });
@@ -57,30 +58,41 @@ const EditProductModal: React.FC<Props> = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    const numericFields = [
+      "price",
+      "cost_price",
+      "stock",
+      "max_stock",
+      "min_stock",
+    ];
+
     setForm((prev) => ({
       ...prev,
-      [name]:
-        name === "price" || name === "stock" || name === "maxStockLevel"
-          ? Number(value)
-          : value,
+      [name]: numericFields.includes(name)
+        ? value === "" ? "" : Number(value)
+        : value,
     }));
   };
 
   const handleSubmit = async () => {
     if (!product) return;
+
     try {
       setLoading(true);
+
       await productApi.update(product.id, {
         name: form.name,
         description: form.description,
-        price: form.price,
-        cost_price: form.cost_price,
-        stock: form.stock,
-        max_stock: form.max_stock,
-        min_stock: form.min_stock,
+        price: Number(form.price),
+        cost_price: Number(form.cost_price),
+        stock: Number(form.stock),
+        max_stock: Number(form.max_stock),
+        min_stock: Number(form.min_stock),
         category: form.category,
         supplier: form.supplier,
       });
+
       onEdited();
       onClose();
     } catch (err) {
@@ -104,6 +116,7 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
             required
           />
+
           <TextField
             label="Description"
             name="description"
@@ -111,6 +124,7 @@ const EditProductModal: React.FC<Props> = ({
             onChange={handleChange}
             fullWidth
           />
+
           <TextField
             label="Price"
             name="price"
@@ -120,6 +134,7 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
             required
           />
+
           <TextField
             label="Cost price"
             name="cost_price"
@@ -129,6 +144,7 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
             required
           />
+
           <TextField
             label="Stock"
             name="stock"
@@ -138,8 +154,9 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
             required
           />
+
           <TextField
-            label="Maximun stock"
+            label="Maximum stock"
             name="max_stock"
             type="number"
             value={form.max_stock}
@@ -147,6 +164,7 @@ const EditProductModal: React.FC<Props> = ({
             fullWidth
             required
           />
+
           <TextField
             label="Minimum stock"
             name="min_stock"
@@ -164,6 +182,7 @@ const EditProductModal: React.FC<Props> = ({
             onChange={handleChange}
             fullWidth
           />
+
           <TextField
             label="Supplier"
             name="supplier"
@@ -173,6 +192,7 @@ const EditProductModal: React.FC<Props> = ({
           />
         </Box>
       </DialogContent>
+
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button

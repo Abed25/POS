@@ -12,7 +12,7 @@ import { productApi } from "../../lib/api";
 import { Product } from "../../types/index";
 
 interface Props {
-  onAdded: () => void; // reload list after adding
+  onAdded: () => void;
 }
 
 const AddProductModal: React.FC<Props> = ({ onAdded }) => {
@@ -34,18 +34,39 @@ const AddProductModal: React.FC<Props> = ({ onAdded }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+
+    const numericFields = [
+      "price",
+      "cost_price",
+      "stock",
+      "max_stock",
+      "min_stock",
+    ];
+
     setForm((prev) => ({
       ...prev,
-      [name]: name === "price" || name === "stock" ? Number(value) : value,
+      [name]: numericFields.includes(name)
+        ? value === "" ? "" : Number(value)
+        : value,
     }));
   };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
-      await productApi.add(form);
+
+      await productApi.add({
+        ...form,
+        price: Number(form.price),
+        cost_price: Number(form.cost_price),
+        stock: Number(form.stock),
+        max_stock: Number(form.max_stock),
+        min_stock: Number(form.min_stock),
+      });
+
       onAdded();
       setOpen(false);
+
       setForm({
         name: "",
         description: "",
