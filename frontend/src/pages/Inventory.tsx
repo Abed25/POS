@@ -211,79 +211,74 @@ export const Inventory: React.FC = () => {
     <div>
             {/* Header + Input button */}   
       <div className="mb-6">
-                {/* Top header section */}     
-        <div className="mb-4">
-                 
-          <h1 className="text-2xl font-bold text-gray-900">Stock Management</h1>
-                 
-          <p className="mt-1 text-sm text-gray-600">
-                        Monitor and manage your product inventory        
-          </p>
-               
-        </div>
-                {/* Controls section: search, sort, add product */}     
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-end w-full">
-                 
-          <div className="relative w-full sm:w-80">
-                     
-            <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                         
-              <svg
-                className="h-5 w-5 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                             
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-                />
-                           
-              </svg>
-                       
-            </span>
-                     
-            <input
-              type="text"
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
+
+  {/* Wrapper */}
+  <div className="flex flex-col gap-4 md:flex-row sm:items-center sm:justify-between mt-4">
+    {/* LEFT: Header */}
+    <div>
+      <h1 className="text-2xl font-bold text-gray-900">
+        Stock Management
+      </h1>
+      <p className="mt-1 text-sm text-gray-600">
+        Monitor and manage your product inventory
+      </p>
+    </div>
+
+    {/* RIGHT: Controls */}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+
+      {/* Search */}
+      <div className="relative w-full sm:w-64">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+          <svg
+            className="h-5 w-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
             />
-                   
-          </div>
-                 
-          <div className="w-full sm:w-auto">
-                     
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              className="block w-full sm:w-48 px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition"
-            >
-                            <option value="name_asc">A-Z (Name)</option>       
-                    <option value="stock_desc">Highest Stock First</option>     
-                      <option value="stock_asc">Low Stock First</option>       
-               
-            </select>
-                   
-          </div>
-                 
-          <div className="w-full sm:w-auto">
-                     
-            {/* The onAdded prop calls refreshAndNotify, which now triggers context */}
-                     
-            <AddProductModal
-              onAdded={() => refreshAndNotify("Product added")}
-            />
-                   
-          </div>
-               
-        </div>
-           
+          </svg>
+        </span>
+
+        <input
+          type="text"
+          placeholder="Search products..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
+        />
       </div>
+
+      {/* Sort */}
+      <div className="w-full sm:w-48">
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          className="block w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition"
+        >
+          <option value="name_asc">A-Z (Name)</option>
+          <option value="stock_desc">Highest Stock First</option>
+          <option value="stock_asc">Low Stock First</option>
+        </select>
+      </div>
+
+      {/* Add Button */}
+      <div>
+        <AddProductModal
+          onAdded={() => refreshAndNotify("Product added")}
+        />
+      </div>
+
+    </div>
+  </div>
+
+  <hr className="mt-4" />
+</div>
             {/* Filter Tabs */}   
       <div className="mb-6">
         <nav className="flex space-x-8">
