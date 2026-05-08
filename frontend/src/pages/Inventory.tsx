@@ -7,43 +7,48 @@ import RestockProductModal from "../components/Inventory/RestockProductModal";
 import EditProductModal from "../components/Inventory/EditProductModal";
 import DeleteProductModal from "../components/Inventory/DeleteProductModal";
 import { useSnackbar } from "notistack";
-// 💡 1. IMPORT THE REFRESH CONTEXT HOOK
-import { useMetricsRefresh } from "../contexts/MetricsRefreshContext"; // <-- Adjust path as needed
+import { useMetricsRefresh } from "../contexts/MetricsRefreshContext";
 
-type FilterType = "all" | "low_stock" | "in_stock";
+type FilterType = "all" | "low_stock" | "in_stock" | "new_products";
 
 export const Inventory: React.FC = () => {
-  const { enqueueSnackbar } = useSnackbar(); // 💡 2. CALL THE HOOK TO GET THE TRIGGER FUNCTION
+  const { enqueueSnackbar } = useSnackbar();
   const { triggerRefresh } = useMetricsRefresh();
 
   const [inventory, setInventory] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
+
   const [restockModalOpen, setRestockModalOpen] = useState(false);
   const [restockProduct, setRestockProduct] = useState<Product | null>(null);
+
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<"name_asc" | "stock_desc" | "stock_asc">(
-    "name_asc"
+    "name_asc",
   );
+
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editProduct, setEditProduct] = useState<Product | null>(null);
 
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null); // --- pagination / infinite scroll state (unchanged) ---
+  const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
   const [page, setPage] = useState(1);
   const pageSize = 6;
   const listEndRef = useRef<HTMLDivElement | null>(null);
-  const [isFetchingMore, setIsFetchingMore] =
-    useState(false); /** Fetch all products and normalize (unchanged) */
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
+  // =========================
+  // FETCH PRODUCTS
+  // =========================
   const fetchInventory = async () => {
     setLoading(true);
     setFetchError(null);
     try {
       const raw = await productApi.getAll();
       let arr: any[] = [];
+
       if (Array.isArray(raw)) arr = raw;
       else if (raw && Array.isArray((raw as any).data)) arr = (raw as any).data;
       else if (raw && Array.isArray((raw as any).items))
@@ -62,6 +67,7 @@ export const Inventory: React.FC = () => {
           d.minimum_stock ??
           d.minimumStock ??
           undefined;
+
         return {
           id,
           name: d.name ?? d.productName ?? "",
@@ -76,12 +82,10 @@ export const Inventory: React.FC = () => {
             maxStockLevelRaw !== undefined
               ? Number(maxStockLevelRaw)
               : undefined,
-
           min_stock:
             minStockRaw !== undefined && Number.isFinite(Number(minStockRaw))
               ? Number(minStockRaw)
               : undefined,
-
           supplier: d.supplier ?? null,
         } as Product;
       });
@@ -98,13 +102,12 @@ export const Inventory: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }; /** Helper to refresh inventory and optionally show success toast */
+  };
 
   const refreshAndNotify = async (message?: string) => {
     try {
       await fetchInventory();
-      if (message) enqueueSnackbar(message, { variant: "success" }); // 💡 CRITICAL CHANGE: Trigger the dashboard metrics refresh
-
+      if (message) enqueueSnackbar(message, { variant: "success" });
       triggerRefresh();
     } catch {
       // fetchInventory already handles errors/toasts
@@ -112,16 +115,103 @@ export const Inventory: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchInventory(); // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // ... (rest of the component logic is unchanged)
+    fetchInventory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+  // =========================
+  // STATUS LOGIC
+  // =========================
   const getStatus = (stock: number, min_stock?: number) => {
-    const min = Number.isFinite(min_stock) ? min_stock! : 5; // fallback to 5
+    const min = Number.isFinite(min_stock) ? min_stock! : 5;
     if (stock === 0) return "out_of_stock";
     if (stock <= min) return "low_stock";
     return "in_stock";
   };
 
+  // =========================
+  // NEW PRODUCTS LOGIC
+  // =========================
+  const isNewProduct = (created_at?: string) => {
+    if (!created_at) return false;
+    const time = new Date(created_at).getTime();
+    if (Number.isNaN(time)) return false;
+    return Date.now() - time <= 24 * 60 * 60 * 1000;
+  };
+
+  // =========================
+  // FILTERING
+  // =========================
+  const filteredInventory = inventory.filter((item) => {
+    const status = getStatus(item.stock, item.min_stock);
+
+    const matchesFilter =
+      filter === "low_stock"
+        ? status === "low_stock" || status === "out_of_stock"
+        : filter === "in_stock"
+          ? status === "in_stock"
+          : filter === "new_products"
+            ? isNewProduct(item.created_at)
+            : true;
+
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      q.length === 0 ||
+      item.name.toLowerCase().includes(q) ||
+      (item.sku && item.sku.toLowerCase().includes(q));
+
+    return matchesFilter && matchesSearch;
+  });
+
+  // =========================
+  // SORTING
+  // =========================
+  const sortedInventory = [...filteredInventory].sort((a, b) => {
+    if (sortBy === "name_asc") return a.name.localeCompare(b.name);
+    if (sortBy === "stock_desc") return b.stock - a.stock;
+    if (sortBy === "stock_asc") return a.stock - b.stock;
+    return 0;
+  });
+
+  // Reset page when filters/search/sort or inventory change
+  useEffect(() => {
+    setPage(1);
+  }, [search, sortBy, filter, inventory.length]);
+
+  const paginatedInventory = sortedInventory.slice(0, page * pageSize);
+  const hasMore = sortedInventory.length > paginatedInventory.length;
+
+  const totalProducts = inventory.length;
+  const filteredCount = filteredInventory.length;
+
+  // =========================
+  // INFINITE SCROLL
+  // =========================
+  useEffect(() => {
+    const el = listEndRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && hasMore && !isFetchingMore && !loading) {
+            setIsFetchingMore(true);
+            setTimeout(() => {
+              setPage((p) => p + 1);
+              setIsFetchingMore(false);
+            }, 250);
+          }
+        });
+      },
+      { root: null, rootMargin: "200px", threshold: 0.1 },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, isFetchingMore, loading, listEndRef.current]);
+
+  // =========================
+  // STATUS BADGE
+  // =========================
   const getStatusBadge = (stock: number, min_stock?: number) => {
     const s = getStatus(stock, min_stock);
     if (s === "out_of_stock")
@@ -143,149 +233,84 @@ export const Inventory: React.FC = () => {
     );
   };
 
-  const filteredInventory = inventory.filter((item) => {
-    const status = getStatus(item.stock, item.min_stock);
-    const matchesFilter =
-      filter === "low_stock"
-        ? status === "low_stock" || status === "out_of_stock"
-        : filter === "in_stock"
-        ? status === "in_stock"
-        : true;
-
-    const q = search.trim().toLowerCase();
-    const matchesSearch =
-      q.length === 0 ||
-      item.name.toLowerCase().includes(q) ||
-      (item.sku && item.sku.toLowerCase().includes(q));
-
-    return matchesFilter && matchesSearch;
-  });
-
-  const sortedInventory = [...filteredInventory].sort((a, b) => {
-    if (sortBy === "name_asc") {
-      return a.name.localeCompare(b.name);
-    }
-    if (sortBy === "stock_desc") {
-      return b.stock - a.stock;
-    }
-    if (sortBy === "stock_asc") {
-      return a.stock - b.stock;
-    }
-    return 0;
-  }); // reset page when filters/search/sort or inventory change
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, sortBy, filter, inventory.length]); // pagination slice + hasMore flag
-
-  const paginatedInventory = sortedInventory.slice(0, page * pageSize);
-  const hasMore = sortedInventory.length > paginatedInventory.length; // totals used for contextual empty states
-
-  const totalProducts = inventory.length;
-  const filteredCount = filteredInventory.length; // IntersectionObserver to load more when sentinel is visible
-
-  useEffect(() => {
-    const el = listEndRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && hasMore && !isFetchingMore && !loading) {
-            setIsFetchingMore(true);
-            setTimeout(() => {
-              setPage((p) => p + 1);
-              setIsFetchingMore(false);
-            }, 250);
-          }
-        });
-      },
-      { root: null, rootMargin: "200px", threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => {
-      observer.disconnect();
-    }; // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore, isFetchingMore, loading, listEndRef.current]);
-
+  // =========================
+  // UI
+  // =========================
   return (
     <div>
-            {/* Header + Input button */}   
+      {/* HEADER */}
       <div className="mb-6">
+        <div className="flex flex-col gap-4 md:flex-row sm:items-center sm:justify-between mt-4">
+          {/* LEFT: Title */}
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Stock Management
+            </h1>
+            <p className="mt-1 text-sm text-gray-600">
+              Monitor and manage your product inventory
+            </p>
+          </div>
 
-  {/* Wrapper */}
-  <div className="flex flex-col gap-4 md:flex-row sm:items-center sm:justify-between mt-4">
-    {/* LEFT: Header */}
-    <div>
-      <h1 className="text-2xl font-bold text-gray-900">
-        Stock Management
-      </h1>
-      <p className="mt-1 text-sm text-gray-600">
-        Monitor and manage your product inventory
-      </p>
-    </div>
+          {/* RIGHT: Controls */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            {/* Search */}
+            <div className="relative w-full sm:w-64">
+              <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg
+                  className="h-5 w-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
+                  />
+                </svg>
+              </span>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
+              />
+            </div>
 
-    {/* RIGHT: Controls */}
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            {/* Sort */}
+            <div className="w-full sm:w-48">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="block w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition"
+              >
+                <option value="name_asc">A-Z (Name)</option>
+                <option value="stock_desc">Highest Stock First</option>
+                <option value="stock_asc">Low Stock First</option>
+              </select>
+            </div>
 
-      {/* Search */}
-      <div className="relative w-full sm:w-64">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-          <svg
-            className="h-5 w-5 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z"
-            />
-          </svg>
-        </span>
-
-        <input
-          type="text"
-          placeholder="Search products..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="block w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition text-gray-900 bg-white shadow-sm"
-        />
+            {/* Add Button */}
+            <div>
+              <AddProductModal
+                onAdded={() => refreshAndNotify("Product added")}
+              />
+            </div>
+          </div>
+        </div>
+        <hr className="mt-4" />
       </div>
 
-      {/* Sort */}
-      <div className="w-full sm:w-48">
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-          className="block w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition"
-        >
-          <option value="name_asc">A-Z (Name)</option>
-          <option value="stock_desc">Highest Stock First</option>
-          <option value="stock_asc">Low Stock First</option>
-        </select>
-      </div>
-
-      {/* Add Button */}
-      <div>
-        <AddProductModal
-          onAdded={() => refreshAndNotify("Product added")}
-        />
-      </div>
-
-    </div>
-  </div>
-
-  <hr className="mt-4" />
-</div>
-            {/* Filter Tabs */}   
+      {/* FILTER TABS */}
       <div className="mb-6">
         <nav className="flex space-x-8">
           {[
             { key: "all", label: "All Items" },
             { key: "low_stock", label: "Alerts" },
             { key: "in_stock", label: "In Stock" },
+            { key: "new_products", label: "New" },
           ].map((tab) => (
             <button
               key={tab.key}
@@ -297,6 +322,7 @@ export const Inventory: React.FC = () => {
               }`}
             >
               {tab.label}
+
               {tab.key === "low_stock" && (
                 <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                   {
@@ -307,11 +333,28 @@ export const Inventory: React.FC = () => {
                   }
                 </span>
               )}
+
+              {tab.key === "in_stock" && (
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {
+                    inventory.filter(
+                      (p) => getStatus(p.stock, p.min_stock) === "in_stock",
+                    ).length
+                  }
+                </span>
+              )}
+
+              {tab.key === "new_products" && (
+                <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  {inventory.filter((p) => isNewProduct(p.created_at)).length}
+                </span>
+              )}
             </button>
           ))}
         </nav>
       </div>
-      {/* Inventory Grid */}
+
+      {/* INVENTORY GRID */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
@@ -382,8 +425,10 @@ export const Inventory: React.FC = () => {
                 {filter === "low_stock"
                   ? "No alerts right now — all products are sufficiently stocked."
                   : filter === "in_stock"
-                  ? "No items currently in stock."
-                  : "No products match your search or filters."}
+                    ? "No items currently in stock."
+                    : filter === "new_products"
+                      ? "No products were added in the last 24 hours."
+                      : "No products match your search or filters."}
               </p>
               <div className="flex items-center justify-center gap-3">
                 <button
@@ -410,15 +455,15 @@ export const Inventory: React.FC = () => {
             const max = item.max_stock ?? Math.max(20, item.stock);
             const pct = Math.min(
               100,
-              Math.round((item.stock / Math.max(1, max)) * 100)
+              Math.round((item.stock / Math.max(1, max)) * 100),
             );
 
             const alertClass =
               status === "out_of_stock"
                 ? "border-l-4 border-red-600 bg-red-50"
                 : status === "low_stock"
-                ? "border-l-4 border-yellow-600 bg-yellow-50"
-                : "border-l-4 border-green-600 bg-white";
+                  ? "border-l-4 border-yellow-600 bg-yellow-50"
+                  : "border-l-4 border-green-600 bg-white";
 
             return (
               <div
@@ -426,16 +471,24 @@ export const Inventory: React.FC = () => {
                 className={`overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow ${alertClass}`}
               >
                 <div className="p-4 sm:p-5">
+                  {/* Title + warning icon */}
                   <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <h3 className="text-base font-semibold text-gray-900 truncate">
                         {item.name}
                       </h3>
+                      {isNewProduct(item.created_at) && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700 flex-shrink-0">
+                          New
+                        </span>
+                      )}
                     </div>
                     {(status === "low_stock" || status === "out_of_stock") && (
                       <ExclamationTriangleIcon className="h-6 w-6 text-red-500 ml-3 flex-shrink-0" />
                     )}
                   </div>
+
+                  {/* Stock progress */}
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-gray-700">
@@ -449,8 +502,8 @@ export const Inventory: React.FC = () => {
                           status === "out_of_stock"
                             ? "bg-red-600"
                             : status === "low_stock"
-                            ? "bg-yellow-500"
-                            : "bg-green-600"
+                              ? "bg-yellow-500"
+                              : "bg-green-600"
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -461,46 +514,34 @@ export const Inventory: React.FC = () => {
                         : `Target: ${max}`}
                     </p>
                   </div>
+
+                  {/* Details */}
                   <div className="mt-4 space-y-2">
-                                        {/* Unit Price */}                 
                     <div className="flex items-center justify-between text-sm">
-                                         
-                      <span className="text-gray-500">Price (KES)</span>       
-                                 
+                      <span className="text-gray-500">Price (KES)</span>
                       <span className="font-semibold text-gray-900">
-                                             
                         {item.price.toLocaleString("en-KE", {
                           style: "currency",
                           currency: "KES",
-                          minimumFractionDigits: 2, // Show decimal places for price
+                          minimumFractionDigits: 2,
                         })}
-                                           
                       </span>
-                                       
                     </div>
-                                        {/* Category / Supplier */}             
-                       
+
                     <div className="flex items-center justify-between text-xs">
-                                         
-                      <span className="text-gray-500">Category</span>           
-                             
+                      <span className="text-gray-500">Category</span>
                       <span className="text-gray-700 font-medium">
-                                                {item.category ?? "-"}         
-                                 
+                        {item.category ?? "-"}
                       </span>
-                                       
                     </div>
+
                     <div className="flex items-center justify-between text-xs">
-                                         
-                      <span className="text-gray-500">Supplier</span>           
-                             
+                      <span className="text-gray-500">Supplier</span>
                       <span className="text-gray-700 font-medium">
-                                                {item.supplier ?? "-"}         
-                                 
+                        {item.supplier ?? "-"}
                       </span>
-                                       
                     </div>
-                      {/* Category / Supplier */}                 
+
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-gray-500">Profit margin</span>
                       <span
@@ -508,12 +549,12 @@ export const Inventory: React.FC = () => {
                           item.cost_price === 0
                             ? "text-gray-700"
                             : item.price - item.cost_price < 0
-                            ? "text-red-500"
-                            : "text-green-700"
+                              ? "text-red-500"
+                              : "text-green-700"
                         }`}
                       >
                         {item.cost_price === 0
-                          ? "-" // cost price missing → just "-"
+                          ? "-"
                           : (() => {
                               const margin = item.price - item.cost_price;
                               const percentage = (
@@ -521,21 +562,19 @@ export const Inventory: React.FC = () => {
                                 100
                               ).toFixed(0);
                               const sign = margin < 0 ? "-" : "+";
-                              return `${sign}${Math.abs(
-                                margin
-                              )} (${percentage}%)`;
+                              return `${sign}${Math.abs(margin)} (${percentage}%)`;
                             })()}
                       </span>
                     </div>
-                                   
                   </div>
 
+                  {/* Actions */}
                   <div className="mt-5 flex flex-wrap gap-2 justify-between items-center border-t pt-4 border-gray-200">
                     {getStatusBadge(item.stock, item.min_stock)}
 
                     <div className="flex gap-2">
                       <button
-                        className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition flex-grow"
+                        className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition"
                         onClick={() => {
                           setRestockProduct(item);
                           setRestockModalOpen(true);
@@ -568,24 +607,25 @@ export const Inventory: React.FC = () => {
             );
           })
         )}
-        <div ref={listEndRef}></div>
+
+        <div ref={listEndRef} />
       </div>
-            {/* modals */}
-         
+
+      {/* MODALS */}
       <RestockProductModal
         open={restockModalOpen}
         product={restockProduct}
         onClose={() => setRestockModalOpen(false)}
-        onRestocked={() => refreshAndNotify("Stock updated")} // <-- Calls refreshAndNotify
+        onRestocked={() => refreshAndNotify("Stock updated")}
       />
-         
+
       <EditProductModal
         open={editModalOpen}
         product={editProduct}
         onClose={() => setEditModalOpen(false)}
-        onEdited={() => refreshAndNotify("Product updated")} // <-- Calls refreshAndNotify
+        onEdited={() => refreshAndNotify("Product updated")}
       />
-         
+
       <DeleteProductModal
         open={deleteModalOpen}
         product={deleteProduct}
@@ -596,10 +636,9 @@ export const Inventory: React.FC = () => {
         onDeleted={() => {
           setDeleteModalOpen(false);
           setDeleteProduct(null);
-          refreshAndNotify("Product deleted"); // <-- Calls refreshAndNotify
+          refreshAndNotify("Product deleted");
         }}
       />
-       
     </div>
   );
 };
