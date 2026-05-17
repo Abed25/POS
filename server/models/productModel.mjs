@@ -7,7 +7,7 @@ export const getProducts = async (business_id) => {
   // CRITICAL: Filter by business_id
   const [rows] = await db.query(
     "SELECT * FROM products WHERE business_id = ? ORDER BY created_at DESC",
-    [business_id]
+    [business_id],
   );
   return rows;
 };
@@ -17,7 +17,7 @@ export const getProductById = async (id, business_id) => {
   // CRITICAL: Filter by both product ID and business_id
   const [rows] = await db.query(
     "SELECT * FROM products WHERE id = ? AND business_id = ?",
-    [id, business_id]
+    [id, business_id],
   );
   return rows[0];
 };
@@ -49,7 +49,7 @@ export const createProduct = async (product, business_id) => {
       category,
       supplier,
       business_id,
-    ]
+    ],
   );
   // Remember that currency is in KES.
   return { id: result.insertId, business_id, ...product, currency: "KES" };
@@ -83,7 +83,7 @@ export const updateProduct = async (id, product, business_id) => {
       supplier,
       id,
       business_id,
-    ]
+    ],
   );
   return { id, business_id, ...product };
 };
@@ -102,7 +102,7 @@ export const patchProduct = async (id, fields, business_id) => {
   // CRITICAL: Filter by product ID AND business_id
   const [result] = await db.query(
     `UPDATE products SET ${updates} WHERE id = ? AND business_id = ?`,
-    [...values, id, business_id]
+    [...values, id, business_id],
   );
 
   return result;
@@ -123,7 +123,7 @@ export const updateProductStock = async (product_id, quantity, business_id) => {
   // 1. Get current stock - CRITICAL: Filter by both IDs
   const [rows] = await db.query(
     "SELECT stock FROM products WHERE id = ? AND business_id = ?",
-    [product_id, business_id]
+    [product_id, business_id],
   );
 
   if (rows.length === 0) {
@@ -141,7 +141,7 @@ export const updateProductStock = async (product_id, quantity, business_id) => {
   // 3. Update stock - CRITICAL: Filter by both IDs
   await db.query(
     "UPDATE products SET stock = stock - ? WHERE id = ? AND business_id = ?",
-    [quantity, product_id, business_id]
+    [quantity, product_id, business_id],
   );
 };
 
@@ -149,25 +149,63 @@ export const updateProductStock = async (product_id, quantity, business_id) => {
 
 // Get product count and total stock value FOR A SPECIFIC BUSINESS
 export const getSummary = async (business_id) => {
-  // Define the two SQL queries - CRITICAL: Filter BOTH queries
-  const countQuery =
-    "SELECT COUNT(*) AS product_count FROM products WHERE business_id = ?";
-  const valueQuery =
-    "SELECT SUM(price * stock) AS total_stock_value FROM products WHERE business_id = ?";
+  const countQuery = `
+    SELECT COUNT(*) AS product_count
+    FROM products
+    WHERE business_id = ?
+  `;
 
-  // Execute both queries concurrently, passing the business_id to each
-  const [[countResult], [valueResult]] = await Promise.all([
+  const valueQuery = `
+    SELECT SUM(price * stock) AS total_stock_value
+    FROM products
+    WHERE business_id = ?
+  `;
+
+  const lowStockCountQuery = `
+    SELECT COUNT(*) AS low_stock_count
+    FROM products
+    WHERE business_id = ?
+      AND stock > 0
+      AND stock <= COALESCE(min_stock, 5)
+  `;
+
+  const outOfStockCountQuery = `
+    SELECT COUNT(*) AS out_of_stock_count
+    FROM products
+    WHERE business_id = ?
+      AND stock = 0
+  `;
+
+  // Returns products that are low or out of stock for the alerts panel
+  const lowStockProductsQuery = `
+    SELECT id, name, stock, min_stock
+    FROM products
+    WHERE business_id = ?
+      AND stock <= COALESCE(min_stock, 5)
+    ORDER BY stock ASC
+    LIMIT 20
+  `;
+
+  const [
+    [countResult],
+    [valueResult],
+    [lowStockCountResult],
+    [outOfStockCountResult],
+    [lowStockProducts],
+  ] = await Promise.all([
     db.query(countQuery, [business_id]),
     db.query(valueQuery, [business_id]),
+    db.query(lowStockCountQuery, [business_id]),
+    db.query(outOfStockCountQuery, [business_id]),
+    db.query(lowStockProductsQuery, [business_id]),
   ]);
 
-  // Extract and return results
-  const product_count = countResult[0].product_count;
-  const total_stock_value = valueResult[0].total_stock_value;
-
   return {
-    product_count,
-    total_stock_value,
-    currency: "KES", // Adding currency context as per your stored information
+    product_count: countResult[0].product_count,
+    total_stock_value: valueResult[0].total_stock_value ?? 0,
+    low_stock_count: lowStockCountResult[0].low_stock_count,
+    out_of_stock_count: outOfStockCountResult[0].out_of_stock_count,
+    low_stock_products: lowStockProducts, // array of { id, name, stock, min_stock }
+    currency: "KES",
   };
 };

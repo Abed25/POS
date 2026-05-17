@@ -84,7 +84,7 @@ export const addProduct = async (req, res) => {
         category,
         supplier,
       },
-      business_id
+      business_id,
     ); // Pass the tenant ID for creation
 
     res.status(201).json(newProduct);
@@ -127,7 +127,7 @@ export const editProduct = async (req, res) => {
         category,
         supplier,
       },
-      business_id
+      business_id,
     );
 
     res.status(200).json(updatedProduct);
@@ -184,16 +184,14 @@ export const removeProduct = async (req, res) => {
 /**
  * Controller function to get the product summary (count and total stock value).
  */
+
 export const getProductSummary = async (req, res) => {
   try {
-    // 🔑 Extract business_id from the authenticated user
-    const { business_id } = req.user; // 1. Call the getSummary function from the model, passing the tenant ID
-
-    const summaryData = await getSummary(business_id); // 2. Respond with the summary data
-
+    const { business_id } = req.user;
+    const summaryData = await getSummary(business_id);
     res.status(200).json(summaryData);
   } catch (error) {
-    console.error("Error fetching product summary:", error); // 3. Handle errors and send a 500 status code
+    console.error("Error fetching product summary:", error);
     res.status(500).json({
       message: "Failed to retrieve product summary.",
       error: error.message,
