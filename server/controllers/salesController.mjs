@@ -6,6 +6,7 @@ import {
   getSalesByDateRange,
   getSalesByUser, // Note: This function is now redundant, but we'll update it
   createBulkSales,
+  getSalesSummary,
 } from "../models/salesModel.mjs";
 import { updateProductStock, getProductById } from "../models/productModel.mjs";
 
@@ -256,6 +257,20 @@ export const addBulkSale = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       message: "Failed to record bulk sales",
+      error: error.message,
+    });
+  }
+};
+
+export const getSalesSummaryController = async (req, res) => {
+  try {
+    const { business_id } = req.user; // Assuming business_id is part of the authenticated user's info
+    const summaryData = await getSalesSummary(business_id);
+    res.status(200).json(summaryData);
+  } catch (error) {
+    console.error("Error fetching sales summary:", error);
+    res.status(500).json({
+      message: "Failed to retrieve sales summary.",
       error: error.message,
     });
   }

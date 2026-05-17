@@ -19,7 +19,7 @@ export const createSale = async ({
       total_price,
       user_id,
       business_id,
-    ]
+    ],
   );
 
   return {
@@ -49,7 +49,7 @@ export const createBulkSales = async (salesArray, business_id) => {
       sale.quantity,
       sale.total_price,
       sale.user_id,
-      business_id // 🔑 Insert business_id for every sale record
+      business_id, // 🔑 Insert business_id for every sale record
     );
   }
 
@@ -84,7 +84,7 @@ export const getSales = async (business_id, userId) => {
  INNER JOIN  users u ON s.user_id = u.id
  ${whereClause} 
  ORDER BY  s.sale_date DESC`,
-    params
+    params,
   );
   return rows;
 };
@@ -112,7 +112,7 @@ export const getSaleById = async (id, business_id) => {
         users u ON s.user_id = u.id
     WHERE 
         s.id = ? AND s.business_id = ?`,
-    [id, business_id]
+    [id, business_id],
   );
   return rows[0];
 };
@@ -149,7 +149,7 @@ users u ON s.user_id = u.id
 ${whereClause}
 ORDER BY 
 s.sale_date ASC`,
-    params
+    params,
   );
   return rows;
 };
@@ -178,7 +178,77 @@ WHERE
 s.user_id = ? AND s.business_id = ?
 ORDER BY 
 s.sale_date DESC`,
-    [user_id, business_id]
+    [user_id, business_id],
   );
   return rows;
+};
+export const getSalesSummary = async (business_id) => {
+  const today = new Date();
+
+  const startOfWeek = new Date();
+  startOfWeek.setDate(today.getDate() - today.getDay());
+
+  const salesSummaryQueries = {
+    todaySales: `
+      SELECT COUNT(*) AS transactions
+      FROM sales
+      WHERE business_id = ?
+      AND DATE(sale_date) = CURDATE()
+    `,
+
+    todayRevenue: `
+      SELECT SUM(total_price) AS revenue
+      FROM sales
+      WHERE business_id = ?
+      AND DATE(sale_date) = CURDATE()
+    `,
+
+    weeklyRevenue: `
+      SELECT SUM(total_price) AS revenue
+      FROM sales
+      WHERE business_id = ?
+      AND sale_date >= ?
+    `,
+
+    avgProfitMargin: `
+      SELECT AVG(
+        ((selling_price - cost_price) / selling_price) * 100
+      ) AS avg_margin
+      FROM sales
+      WHERE business_id = ?
+    `,
+  };
+
+  const [
+    todaySalesRows,
+    todayRevenueRows,
+    weeklyRevenueRows,
+    avgProfitMarginRows,
+  ] = await Promise.all([
+    db.query(salesSummaryQueries.todaySales, [business_id]),
+
+    db.query(salesSummaryQueries.todayRevenue, [business_id]),
+
+    db.query(salesSummaryQueries.weeklyRevenue, [business_id, startOfWeek]),
+
+    db.query(salesSummaryQueries.avgProfitMargin, [business_id]),
+  ]);
+
+  const todaySalesResult = todaySalesRows[0][0];
+
+  const todayRevenueResult = todayRevenueRows[0][0];
+
+  const weeklyRevenueResult = weeklyRevenueRows[0][0];
+
+  const avgProfitMarginResult = avgProfitMarginRows[0][0];
+
+  return {
+    todaySales: todaySalesResult?.transactions || 0,
+
+    todayRevenue: todayRevenueResult?.revenue || 0,
+
+    weeklyRevenue: weeklyRevenueResult?.revenue || 0,
+
+    avgProfitMargin: Number(avgProfitMarginResult?.avg_margin || 0).toFixed(2),
+  };
 };

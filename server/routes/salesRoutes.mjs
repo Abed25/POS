@@ -5,6 +5,7 @@ import {
   getSingleSale,
   getSalesInRange,
   addBulkSale,
+  getSalesSummaryController,
 } from "../controllers/salesController.mjs";
 import { protect, authorize } from "../middleware/authMiddleware.mjs";
 
@@ -18,6 +19,12 @@ router.post("/", protect, authorize("cashier", "admin"), addSale); // Record a n
 // Consolidated Route: Handles all sales and also filtered sales using req.query.userId
 router.get("/range", protect, authorize("admin", "cashier"), getSalesInRange); // Get sales in date range
 router.get("/", protect, authorize("admin", "cashier"), getAllSales); // Get all sales OR filtered sales
+router.get(
+  "/sales-summary",
+  protect,
+  authorize("admin", "cashier"),
+  getSalesSummaryController,
+);
 router.get("/:id", protect, authorize("cashier", "admin"), getSingleSale); // Get one sale
 
 export default router;
