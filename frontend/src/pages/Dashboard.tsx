@@ -12,11 +12,21 @@ import {
 
 import { ArrowUpIcon, ArrowDownIcon } from "@heroicons/react/20/solid";
 
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+
 import { productApi, salesApi } from "../lib/api";
 import { ProductMetrics } from "../types";
 import { useMetricsRefresh } from "../contexts/MetricsRefreshContext";
 
-// ─── TYPES ───────────────────────────────────────────────────────────────────
+// ───────────────── TYPES ─────────────────
 
 interface MetricCardProps {
   title: string;
@@ -46,7 +56,12 @@ interface SalesSummary {
   avgProfitMargin: number;
 }
 
-// ─── METRIC CARD ─────────────────────────────────────────────────────────────
+interface RevenueChartItem {
+  date: string;
+  revenue: number;
+}
+
+// ───────────────── METRIC CARD ─────────────────
 
 const MetricCard: React.FC<MetricCardProps> = ({
   title,
@@ -96,7 +111,7 @@ const MetricCard: React.FC<MetricCardProps> = ({
   );
 };
 
-// ─── SECTION HEADER ──────────────────────────────────────────────────────────
+// ───────────────── SECTION HEADER ─────────────────
 
 const SectionHeader: React.FC<{
   title: string;
@@ -111,7 +126,7 @@ const SectionHeader: React.FC<{
   );
 };
 
-// ─── SKELETON CARD ───────────────────────────────────────────────────────────
+// ───────────────── SKELETON ─────────────────
 
 const SkeletonCard = () => {
   return (
@@ -128,7 +143,7 @@ const SkeletonCard = () => {
   );
 };
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// ───────────────── HELPERS ─────────────────
 
 const fmtKES = (value: number) => {
   return `KES ${new Intl.NumberFormat("en-US", {
@@ -147,7 +162,7 @@ const getStatus = (stock: number, min?: number) => {
   return "in_stock";
 };
 
-// ─── DASHBOARD ───────────────────────────────────────────────────────────────
+// ───────────────── DASHBOARD ─────────────────
 
 export const Dashboard: React.FC = () => {
   const { metricsRefresh } = useMetricsRefresh();
@@ -156,16 +171,18 @@ export const Dashboard: React.FC = () => {
 
   const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
 
+  const [chartData, setChartData] = useState<RevenueChartItem[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState<any>(null);
 
-  // ─── STOCK ALERTS ────────────────────────────────────────────────────────
+  // ───────────────── STOCK ALERTS ─────────────────
 
   const stockAlerts: StockAlertItem[] =
     (metrics as any)?.low_stock_products ?? [];
 
-  // ─── FETCH DATA ──────────────────────────────────────────────────────────
+  // ───────────────── FETCH DATA ─────────────────
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -173,14 +190,18 @@ export const Dashboard: React.FC = () => {
 
       setError(null);
 
-      const [productSummary, salesSummaryResponse] = await Promise.all([
-        productApi.getSummary(),
-        salesApi.getSalesSummary(),
-      ]);
+      const [productSummary, salesSummaryResponse, revenueChartResponse] =
+        await Promise.all([
+          productApi.getSummary(),
+          salesApi.getSalesSummary(),
+          salesApi.getRevenueChart(),
+        ]);
 
       setMetrics(productSummary as ProductMetrics);
 
       setSalesSummary(salesSummaryResponse as SalesSummary);
+
+      setChartData((revenueChartResponse as RevenueChartItem[]) || []);
     } catch (err) {
       console.error("Failed to fetch dashboard data:", err);
 
@@ -190,13 +211,13 @@ export const Dashboard: React.FC = () => {
     }
   }, []);
 
-  // ─── EFFECT ──────────────────────────────────────────────────────────────
+  // ───────────────── EFFECT ─────────────────
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData, metricsRefresh]);
 
-  // ─── ERROR UI ────────────────────────────────────────────────────────────
+  // ───────────────── ERROR UI ─────────────────
 
   if (error) {
     return (
@@ -215,7 +236,7 @@ export const Dashboard: React.FC = () => {
     );
   }
 
-  // ─── DERIVED METRICS ─────────────────────────────────────────────────────
+  // ───────────────── DERIVED VALUES ─────────────────
 
   const productCount = metrics?.product_count ?? 0;
 
@@ -225,7 +246,7 @@ export const Dashboard: React.FC = () => {
 
   const outOfStockCount = (metrics as any)?.out_of_stock_count ?? 0;
 
-  // ─── SALES VALUES ────────────────────────────────────────────────────────
+  // ───────────────── SALES VALUES ─────────────────
 
   const todaysSales = salesSummary?.todaySales || 0;
 
@@ -235,7 +256,7 @@ export const Dashboard: React.FC = () => {
 
   const avgMargin = salesSummary?.avgProfitMargin || 0;
 
-  // ─── UI ──────────────────────────────────────────────────────────────────
+  // ───────────────── UI ─────────────────
 
   return (
     <div className="space-y-8">
@@ -465,20 +486,66 @@ export const Dashboard: React.FC = () => {
             </h2>
 
             <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-              Coming soon
+              Live
             </span>
           </div>
 
-          <div className="flex flex-col items-center justify-center h-56 rounded-lg border-2 border-dashed border-gray-200 gap-3">
-            <ChartBarIcon className="h-10 w-10 text-gray-300" />
+          <div className="h-72">
+            {chartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full rounded-lg border-2 border-dashed border-gray-200 gap-3">
+                <ChartBarIcon className="h-10 w-10 text-gray-300" />
 
-            <p className="text-sm text-gray-400">
-              Sales chart will appear here
-            </p>
+                <p className="text-sm text-gray-400">No sales data available</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
 
-            <p className="text-xs text-gray-300">
-              Connect your sales API to populate
-            </p>
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString("en-KE", {
+                        day: "2-digit",
+                        month: "short",
+                      })
+                    }
+                    tick={{ fontSize: 12 }}
+                  />
+
+                  <YAxis
+                    tickFormatter={(value) => `KES ${value}`}
+                    tick={{ fontSize: 12 }}
+                  />
+
+                  <Tooltip
+                    labelFormatter={(label) => {
+                      return new Date(label).toLocaleDateString("en-KE", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      });
+                    }}
+                    formatter={(value) => [
+                      `KES ${Number(value).toLocaleString()}`,
+                      "Revenue",
+                    ]}
+                    contentStyle={{
+                      borderRadius: "12px",
+                      border: "1px solid #e5e7eb",
+                      fontSize: "13px",
+                    }}
+                  />
+
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#2563eb"
+                    strokeWidth={3}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

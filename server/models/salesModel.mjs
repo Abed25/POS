@@ -252,3 +252,20 @@ export const getSalesSummary = async (business_id) => {
     avgProfitMargin: Number(avgProfitMarginResult?.avg_margin || 0).toFixed(2),
   };
 };
+
+export const getRevenueChartData = async (business_id) => {
+  const [rows] = await db.query(
+    `
+    SELECT
+      DATE(sale_date) AS date,
+      SUM(total_price) AS revenue
+    FROM sales
+    WHERE business_id = ?
+    GROUP BY DATE(sale_date)
+    ORDER BY DATE(sale_date) ASC
+    `,
+    [business_id],
+  );
+
+  return rows;
+};

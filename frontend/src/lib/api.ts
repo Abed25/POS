@@ -124,6 +124,7 @@ export const businessApi = {
 /* ---------- SALES ---------- */
 export const salesApi = {
   getSalesSummary: () => apiRequest("/sales/sales-summary"),
+  getRevenueChart: () => apiRequest("/sales/revenue-chart"),
   list: (from?: string, to?: string) => {
     // Determine if the request is filtered (i.e., if 'from' or 'to' has a value)
     // The !! converts the string (or undefined) to a boolean.

@@ -7,6 +7,7 @@ import {
   getSalesByUser, // Note: This function is now redundant, but we'll update it
   createBulkSales,
   getSalesSummary,
+  getRevenueChartData,
 } from "../models/salesModel.mjs";
 import { updateProductStock, getProductById } from "../models/productModel.mjs";
 
@@ -272,6 +273,22 @@ export const getSalesSummaryController = async (req, res) => {
     res.status(500).json({
       message: "Failed to retrieve sales summary.",
       error: error.message,
+    });
+  }
+};
+
+export const getRevenueChartController = async (req, res) => {
+  try {
+    const { business_id } = req.user;
+
+    const data = await getRevenueChartData(business_id);
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Failed to fetch revenue chart data",
     });
   }
 };

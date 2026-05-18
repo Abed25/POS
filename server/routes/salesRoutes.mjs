@@ -6,6 +6,7 @@ import {
   getSalesInRange,
   addBulkSale,
   getSalesSummaryController,
+  getRevenueChartController,
 } from "../controllers/salesController.mjs";
 import { protect, authorize } from "../middleware/authMiddleware.mjs";
 
@@ -24,6 +25,12 @@ router.get(
   protect,
   authorize("admin", "cashier"),
   getSalesSummaryController,
+);
+router.get(
+  "/revenue-chart",
+  protect,
+  authorize("admin", "cashier"),
+  getRevenueChartController,
 );
 router.get("/:id", protect, authorize("cashier", "admin"), getSingleSale); // Get one sale
 
