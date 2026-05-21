@@ -82,10 +82,12 @@ const STATUS_CONFIG = {
 const StatusBadge = ({ status }: { status: Sale["status"] }) => {
   const s = STATUS_CONFIG[status || "completed"] ?? STATUS_CONFIG.completed;
   const Icon = s.icon;
+
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ${s.bg} ${s.text} ${s.ringColor}`}
     >
+      <Icon className="h-3.5 w-3.5" />
       <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
       {s.label}
     </span>
@@ -105,6 +107,7 @@ const SortBtn = ({
 }) => (
   <button
     onClick={onClick}
+    title={`Sort by ${col}`}
     className="inline-flex items-center gap-0.5 hover:text-gray-900 transition-colors"
   >
     {active ? (
