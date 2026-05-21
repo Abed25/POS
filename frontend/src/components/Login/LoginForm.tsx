@@ -59,11 +59,11 @@ export const LoginForm: React.FC = () => {
             <div className="space-y-2 text-xs text-blue-800">
               <div className="flex justify-between">
                 <span className="font-medium">Admin:</span>
-                <span>admin / admin123</span>
+                <span>admin1 / admin123(✔)</span>
               </div>
               <div className="flex justify-between">
                 <span className="font-medium">Cashier:</span>
-                <span>cashier / cashier123</span>
+                <span>cashier / cashier123 (❌)</span>
               </div>
             </div>
           </div>
