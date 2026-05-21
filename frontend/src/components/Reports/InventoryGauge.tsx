@@ -1,113 +1,179 @@
+// InventoryGauge.tsx
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-//import { inventoryApi, InventoryStats } from "@/services/api"; // Adjust path as needed
 import { inventoryApi } from "../../lib/api";
 import type { InventoryStats } from "../../types/index";
+import { TrendingUp, TrendingDown, Activity } from "lucide-react";
 
-const COLORS = ["hsl(217, 91%, 45%)", "hsl(220, 14%, 92%)"];
+const TRACK_COLOR = "#f1f5f9";
+const FILL_COLOR = "#2563eb";
+
+const fmtKES = (n: number) =>
+  new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(n);
 
 export function InventoryGauge() {
   const [stats, setStats] = useState<InventoryStats | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     inventoryApi
       .getTurnoverStats()
       .then((data) => {
         setStats(data);
-        setIsLoading(false);
+        setLoading(false);
       })
       .catch((err) => {
         console.error("Failed to load inventory stats", err);
-        setIsLoading(false);
+        setLoading(false);
       });
   }, []);
 
-  if (isLoading)
+  if (loading) {
     return (
-      <div className="h-[400px] flex items-center justify-center">
-        Loading...
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-full flex flex-col animate-pulse">
+        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2" />
+        <div className="h-3 bg-gray-100 rounded w-1/3 mb-6" />
+        <div className="flex-1 bg-gray-100 rounded-xl" />
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-12 bg-gray-100 rounded-xl" />
+          ))}
+        </div>
       </div>
     );
+  }
+
   if (!stats) return null;
 
-  // Calculate gauge fill based on dynamic maxRate from backend
-  const percentage = (stats.turnoverRate / stats.maxRate) * 100;
+  const pct = Math.min((stats.turnoverRate / stats.maxRate) * 100, 100);
   const chartData = [
-    { name: "Current", value: percentage },
-    { name: "Remaining", value: 100 - percentage },
+    { name: "Used", value: pct },
+    { name: "Remaining", value: 100 - pct },
   ];
 
+  // Health label
+  const health =
+    pct >= 80
+      ? { label: "Excellent", color: "text-emerald-600" }
+      : pct >= 50
+        ? { label: "Healthy", color: "text-blue-600" }
+        : pct >= 25
+          ? { label: "Moderate", color: "text-amber-500" }
+          : { label: "Low", color: "text-red-500" };
+
   return (
-    <div className="chart-container animate-fade-in w-full h-[400px]">
-      <div className="mb-6">
-        <h3 className="text-lg font-semibold text-foreground">
-          Inventory Turnover
-        </h3>
-        <p className="text-sm text-muted-foreground">Annual turnover rate</p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-2">
+        <div>
+          <h3 className="text-base font-bold text-gray-900">
+            Inventory Turnover
+          </h3>
+          <p className="text-xs text-gray-400 mt-0.5">Annual rotation rate</p>
+        </div>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-semibold">
+          <Activity className="h-3 w-3" />
+          Live
+        </div>
       </div>
 
-      <div className="relative h-[280px] w-full">
+      {/* Gauge */}
+      <div className="relative flex-1 min-h-[200px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
               data={chartData}
               cx="50%"
-              cy="50%"
+              cy="80%"
               startAngle={180}
               endAngle={0}
               innerRadius="60%"
-              outerRadius="80%"
+              outerRadius="85%"
               dataKey="value"
               stroke="none"
-              isAnimationActive={true}
             >
-              {chartData.map((_, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={COLORS[index % COLORS.length]}
-                />
-              ))}
+              <Cell fill={FILL_COLOR} />
+              <Cell fill={TRACK_COLOR} />
             </Pie>
           </PieChart>
         </ResponsiveContainer>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-4">
-          <span className="text-4xl font-bold text-foreground">
+        {/* Center label */}
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-4">
+          <span className="text-4xl font-extrabold text-gray-900 leading-none">
             {stats.turnoverRate}x
           </span>
-          <span className="text-sm text-muted-foreground">Turnover Rate</span>
+          <span className={`text-sm font-semibold mt-1 ${health.color}`}>
+            {health.label}
+          </span>
+          <span className="text-xs text-gray-400">of {stats.maxRate}x max</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
-        <div className="text-center">
-          <p className="text-xl font-semibold text-foreground">
-            {stats.daysOfStock}
-          </p>
-          <p className="text-xs text-muted-foreground">Days of Stock</p>
-        </div>
-        <div className="text-center">
-          {/* Formatting for KES */}
-          <p className="text-xl font-semibold text-foreground">
-            {new Intl.NumberFormat("en-KE", {
-              style: "currency",
-              currency: "KES",
-              maximumFractionDigits: 0,
-            }).format(stats.monthlyCogs)}
-          </p>
-          <p className="text-xs text-muted-foreground">Monthly COGS</p>
-        </div>
-        <div className="text-center">
-          <p
-            className={`text-xl font-semibold ${
-              stats.vsLastYear >= 0 ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {stats.vsLastYear > 0 ? `+${stats.vsLastYear}` : stats.vsLastYear}x
-          </p>
-          <p className="text-xs text-muted-foreground">vs Last Year</p>
-        </div>
+      {/* Stats grid */}
+      <div className="grid grid-cols-3 gap-3 mt-2 pt-4 border-t border-gray-100">
+        <StatCell
+          label="Days of Stock"
+          value={`${stats.daysOfStock}d`}
+          sub={stats.daysOfStock <= 30 ? "⚠ Restock soon" : "Sufficient"}
+          subColor={
+            stats.daysOfStock <= 30 ? "text-amber-500" : "text-emerald-500"
+          }
+        />
+        <StatCell
+          label="Monthly COGS"
+          value={fmtKES(stats.monthlyCogs)}
+          sub="Cost of goods sold"
+          subColor="text-gray-400"
+        />
+        <StatCell
+          label="vs Last Year"
+          value={`${stats.vsLastYear > 0 ? "+" : ""}${stats.vsLastYear}x`}
+          sub={stats.vsLastYear >= 0 ? "Improving" : "Declining"}
+          subColor={stats.vsLastYear >= 0 ? "text-emerald-500" : "text-red-500"}
+          icon={
+            stats.vsLastYear >= 0 ? (
+              <TrendingUp className="h-3 w-3 text-emerald-500" />
+            ) : (
+              <TrendingDown className="h-3 w-3 text-red-500" />
+            )
+          }
+        />
+      </div>
+    </div>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+  sub,
+  subColor,
+  icon,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  subColor: string;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="bg-gray-50 rounded-xl p-3 text-center">
+      <p className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-1">
+        {label}
+      </p>
+      <p className="text-lg font-extrabold text-gray-900 leading-none">
+        {value}
+      </p>
+      <div
+        className={`flex items-center justify-center gap-1 mt-1 text-[10px] font-medium ${subColor}`}
+      >
+        {icon}
+        {sub}
       </div>
     </div>
   );
