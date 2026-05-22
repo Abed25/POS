@@ -43,7 +43,7 @@ const navigation = [
     name: "Inventory",
     href: "/inventory",
     icon: DocumentChartBarIcon,
-    roles: ["admin", "cashier"],
+    roles: ["admin"],
   },
   {
     name: "Products Catalog",
