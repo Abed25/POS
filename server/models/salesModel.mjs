@@ -182,37 +182,51 @@ s.sale_date DESC`,
   );
   return rows;
 };
+
 export const getSalesSummary = async (business_id, role, user_id) => {
-  const today = new Date();
+  // Kenya timezone date
+  const kenyaNow = new Date(
+    new Date().toLocaleString("en-US", {
+      timeZone: "Africa/Nairobi",
+    }),
+  );
 
-  const startOfWeek = new Date();
-  startOfWeek.setDate(today.getDate() - today.getDay());
+  // Start of week
+  const startOfWeek = new Date(kenyaNow);
+  startOfWeek.setDate(kenyaNow.getDate() - kenyaNow.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
 
-  // condition for cashier
+  // Cashier filter
   const userFilter = role === "cashier" ? "AND user_id = ?" : "";
 
+  // Params helper
   const queryParams = (extra = []) =>
     role === "cashier"
       ? [business_id, user_id, ...extra]
       : [business_id, ...extra];
 
   const salesSummaryQueries = {
+    // Today's transactions
     todaySales: `
       SELECT COUNT(*) AS transactions
       FROM sales
       WHERE business_id = ?
       ${userFilter}
-      AND DATE(sale_date) = CURDATE()
+      AND DATE(sale_date) =
+          DATE(CONVERT_TZ(NOW(), '+00:00', '+03:00'))
     `,
 
+    // Today's revenue
     todayRevenue: `
       SELECT SUM(total_price) AS revenue
       FROM sales
       WHERE business_id = ?
       ${userFilter}
-      AND DATE(sale_date) = CURDATE()
+      AND DATE(sale_date) =
+          DATE(CONVERT_TZ(NOW(), '+00:00', '+03:00'))
     `,
 
+    // Weekly revenue
     weeklyRevenue: `
       SELECT SUM(total_price) AS revenue
       FROM sales
@@ -221,6 +235,7 @@ export const getSalesSummary = async (business_id, role, user_id) => {
       AND sale_date >= ?
     `,
 
+    // Average profit margin
     avgProfitMargin: `
       SELECT AVG(
         ((selling_price - cost_price) / selling_price) * 100
