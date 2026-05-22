@@ -23,7 +23,7 @@ router.get("/", protect, authorize("admin", "cashier"), getAllSales); // Get all
 router.get(
   "/sales-summary",
   protect,
-  authorize("admin", "cashier"),
+  authorize("admin", "cashier", "customer"),
   getSalesSummaryController,
 );
 router.get(
