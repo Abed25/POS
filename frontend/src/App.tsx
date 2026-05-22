@@ -5,122 +5,151 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+
 import { SnackbarProvider } from "notistack";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { MetricsRefreshProvider } from "./contexts/MetricsRefreshContext.tsx";
 import { Layout } from "./components/Layout/Layout";
+
 import { LoginForm } from "./components/Login/LoginForm";
 import { Dashboard } from "./pages/Dashboard";
 import { Sales } from "./pages/Sales";
 import { Inventory } from "./pages/Inventory";
-import Test from "./pages/Test";
 import UserProducts from "./pages/userProducts.tsx";
 import UserManagement from "./pages/userManagement.tsx";
 import Report from "./pages/Reports.tsx";
+import Test from "./pages/Test";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  const { isAuthenticated, loading } = useAuth();
+import { User } from "./types/index.ts";
+
+/* =========================
+   PROTECTED ROUTE (RBAC)
+========================= */
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  allowedRoles?: User["role"][];
+}> = ({ children, allowedRoles }) => {
+  const { isAuthenticated, loading, user } = useAuth();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
       </div>
     );
   }
 
-  return isAuthenticated ? (
-    <Layout>{children}</Layout>
-  ) : (
-    <Navigate to="/login" />
-  );
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  const role = user?.role;
+
+  // If role restriction exists, enforce it
+  if (allowedRoles?.length && (!role || !allowedRoles.includes(role))) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <Layout>{children}</Layout>;
 };
 
+/* =========================
+   ROUTES
+========================= */
 const AppRoutes: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600" />
       </div>
     );
   }
 
   return (
     <Routes>
+      {/* LOGIN */}
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" /> : <LoginForm />}
+        element={isAuthenticated ? <Navigate to="/" replace /> : <LoginForm />}
       />
+
+      {/* DASHBOARD (ADMIN + CASHIER) */}
       <Route
         path="/"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "cashier", "customer"]}>
             <Dashboard />
           </ProtectedRoute>
         }
       />
+
+      {/* SALES (ADMIN + CASHIER ONLY) */}
       <Route
         path="/sales"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "cashier"]}>
             <Sales />
           </ProtectedRoute>
         }
       />
+
+      {/* INVENTORY (ADMIN ONLY) */}
       <Route
         path="/inventory"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <Inventory />
           </ProtectedRoute>
         }
       />
+
+      {/* PRODUCTS (ALL ROLES) */}
       <Route
         path="/products"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin", "cashier", "customer"]}>
             <UserProducts />
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/test"
-        element={
-          <ProtectedRoute>
-            <Test />
-          </ProtectedRoute>
-        }
-      />
+
+      {/* REPORTS (ADMIN ONLY) */}
       <Route
         path="/reports"
         element={
-          <ProtectedRoute>
-            {/* <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-900">Reports</h2>
-              <p className="mt-2 text-gray-600">
-                Reports functionality coming soon...
-              </p>
-            </div> */}
+          <ProtectedRoute allowedRoles={["admin"]}>
             <Report />
           </ProtectedRoute>
         }
       />
+
+      {/* USERS (ADMIN ONLY) */}
       <Route
         path="/users"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <UserManagement />
           </ProtectedRoute>
         }
       />
+
+      {/* TEST (ADMIN ONLY OR REMOVE IN PRODUCTION) */}
+      <Route
+        path="/test"
+        element={
+          <ProtectedRoute allowedRoles={["admin"]}>
+            <Test />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* SETTINGS (ADMIN ONLY) */}
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute allowedRoles={["admin"]}>
             <div className="text-center py-12">
               <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
               <p className="mt-2 text-gray-600">
@@ -130,11 +159,16 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="*" element={<Navigate to="/" />} />
+
+      {/* FALLBACK */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 };
 
+/* =========================
+   APP WRAPPER
+========================= */
 function App() {
   return (
     <SnackbarProvider
