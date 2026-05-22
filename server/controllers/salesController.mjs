@@ -265,11 +265,14 @@ export const addBulkSale = async (req, res) => {
 
 export const getSalesSummaryController = async (req, res) => {
   try {
-    const { business_id } = req.user; // Assuming business_id is part of the authenticated user's info
-    const summaryData = await getSalesSummary(business_id);
+    const { business_id, role, id } = req.user;
+
+    const summaryData = await getSalesSummary(business_id, role, id);
+
     res.status(200).json(summaryData);
   } catch (error) {
     console.error("Error fetching sales summary:", error);
+
     res.status(500).json({
       message: "Failed to retrieve sales summary.",
       error: error.message,

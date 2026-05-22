@@ -182,17 +182,26 @@ s.sale_date DESC`,
   );
   return rows;
 };
-export const getSalesSummary = async (business_id) => {
+export const getSalesSummary = async (business_id, role, user_id) => {
   const today = new Date();
 
   const startOfWeek = new Date();
   startOfWeek.setDate(today.getDate() - today.getDay());
+
+  // condition for cashier
+  const userFilter = role === "cashier" ? "AND user_id = ?" : "";
+
+  const queryParams = (extra = []) =>
+    role === "cashier"
+      ? [business_id, user_id, ...extra]
+      : [business_id, ...extra];
 
   const salesSummaryQueries = {
     todaySales: `
       SELECT COUNT(*) AS transactions
       FROM sales
       WHERE business_id = ?
+      ${userFilter}
       AND DATE(sale_date) = CURDATE()
     `,
 
@@ -200,6 +209,7 @@ export const getSalesSummary = async (business_id) => {
       SELECT SUM(total_price) AS revenue
       FROM sales
       WHERE business_id = ?
+      ${userFilter}
       AND DATE(sale_date) = CURDATE()
     `,
 
@@ -207,6 +217,7 @@ export const getSalesSummary = async (business_id) => {
       SELECT SUM(total_price) AS revenue
       FROM sales
       WHERE business_id = ?
+      ${userFilter}
       AND sale_date >= ?
     `,
 
@@ -216,6 +227,7 @@ export const getSalesSummary = async (business_id) => {
       ) AS avg_margin
       FROM sales
       WHERE business_id = ?
+      ${userFilter}
     `,
   };
 
@@ -225,31 +237,25 @@ export const getSalesSummary = async (business_id) => {
     weeklyRevenueRows,
     avgProfitMarginRows,
   ] = await Promise.all([
-    db.query(salesSummaryQueries.todaySales, [business_id]),
+    db.query(salesSummaryQueries.todaySales, queryParams()),
 
-    db.query(salesSummaryQueries.todayRevenue, [business_id]),
+    db.query(salesSummaryQueries.todayRevenue, queryParams()),
 
-    db.query(salesSummaryQueries.weeklyRevenue, [business_id, startOfWeek]),
+    db.query(salesSummaryQueries.weeklyRevenue, queryParams([startOfWeek])),
 
-    db.query(salesSummaryQueries.avgProfitMargin, [business_id]),
+    db.query(salesSummaryQueries.avgProfitMargin, queryParams()),
   ]);
 
-  const todaySalesResult = todaySalesRows[0][0];
-
-  const todayRevenueResult = todayRevenueRows[0][0];
-
-  const weeklyRevenueResult = weeklyRevenueRows[0][0];
-
-  const avgProfitMarginResult = avgProfitMarginRows[0][0];
-
   return {
-    todaySales: todaySalesResult?.transactions || 0,
+    todaySales: todaySalesRows[0][0]?.transactions || 0,
 
-    todayRevenue: todayRevenueResult?.revenue || 0,
+    todayRevenue: todayRevenueRows[0][0]?.revenue || 0,
 
-    weeklyRevenue: weeklyRevenueResult?.revenue || 0,
+    weeklyRevenue: weeklyRevenueRows[0][0]?.revenue || 0,
 
-    avgProfitMargin: Number(avgProfitMarginResult?.avg_margin || 0).toFixed(2),
+    avgProfitMargin: Number(avgProfitMarginRows[0][0]?.avg_margin || 0).toFixed(
+      2,
+    ),
   };
 };
 
