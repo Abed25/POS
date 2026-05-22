@@ -177,6 +177,7 @@ export const Dashboard: React.FC = () => {
 
   const isCashier = role === "cashier";
 
+  const isCustomer = role === "customer";
   const [metrics, setMetrics] = useState<ProductMetrics | null>(null);
 
   const [salesSummary, setSalesSummary] = useState<SalesSummary | null>(null);
@@ -524,6 +525,47 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* CUSTOMER DASHBOARD */}
+      {isCustomer && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl p-6 shadow-sm border">
+            <h1 className="text-xl font-bold text-gray-900">
+              Welcome to Our Store 👋
+            </h1>
+
+            <p className="text-gray-500 mt-1">
+              Browse products and discover what you need today.
+            </p>
+
+            <div className="mt-4">
+              <button
+                onClick={() => (window.location.href = "/products")}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Go to Product Catalog
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-gray-600">Fast browsing</p>
+              <p className="font-semibold">Find products quickly</p>
+            </div>
+
+            <div className="p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-gray-600">Updated stock</p>
+              <p className="font-semibold">Real-time availability</p>
+            </div>
+
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-gray-600">Easy access</p>
+              <p className="font-semibold">Simple navigation</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ADMIN DASHBOARD */}
